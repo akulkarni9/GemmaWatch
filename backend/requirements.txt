@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+playwright
+websockets
+pydantic
+python-dotenv
+httpx
+pytest
+pytest-asyncio
