@@ -3,7 +3,7 @@ import './index.css'
 
 function App() {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-screen overflow-hidden">
       <Dashboard />
     </div>
   )
