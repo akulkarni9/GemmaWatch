@@ -44,8 +44,8 @@ interface Site {
   frequency?: number;
 }
 
-const API_BASE = 'http://localhost:8002';
-const WS_BASE = 'ws://localhost:8002';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8002';
+const WS_BASE = import.meta.env.VITE_WS_BASE || 'ws://localhost:8002';
 
 const Dashboard: React.FC = () => {
   const [results, setResults] = useState<MonitoringResult[]>([]);
