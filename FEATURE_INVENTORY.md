@@ -4,15 +4,15 @@
 
 ---
 
-## 📊 MONITORING FEATURES
+##  MONITORING FEATURES
 
-### Check Types Implemented ✅
+### Check Types Implemented 
 - **HTTP/Web Monitoring** - Full webpage capture with screenshot and DOM analysis
 - **API Endpoint Checks** - REST API status validation (GET/POST/custom methods)
 - **DNS Resolution Checks** - Hostname to IP resolution validation
 - **TCP Connectivity Checks** - Port/host connectivity verification
 
-### Check Capabilities ✅
+### Check Capabilities 
 - Multiple check type support per site
 - Automatic retry logic with exponential backoff (2, 4, 8 second intervals)
 - Configurable timeout handling (10s default, extensible)
@@ -20,7 +20,7 @@
 - Response time measurement (milliseconds)
 - Custom headers support for API checks
 
-### Check Capabilities NOT Implemented ❌
+### Check Capabilities NOT Implemented 
 - HTTP HEAD request support (only GET/POST)
 - SSL/TLS certificate validation reports
 - Custom HTTP methods (PATCH, PUT, DELETE) - only GET/POST supported
@@ -33,15 +33,15 @@
 
 ---
 
-## 🎨 UI/DASHBOARD FEATURES
+##  UI/DASHBOARD FEATURES
 
-### Pages & Layouts ✅
+### Pages & Layouts 
 - **Single-page Dashboard** - All monitoring, analytics, and site management in one view
 - **Responsive Design** - Grid layout with left sidebar (sites) and right panel (results)
 - **Dark Theme** - Dark mode default (#050510 background, blue/indigo accents)
 - **Mobile-Responsive** - 1 col (mobile) → 4 cols (desktop) grid layout
 
-### Components ✅
+### Components 
 - **Site Management Panel**
   - Add site modal (name, URL, check type)
   - Site list with inline search filter
@@ -51,11 +51,11 @@
 
 - **Real-time Activity Feed**
   - Last 10 status messages from WebSocket
-  - Live monitoring progress (🔍, 📸, 🔬, 🧠)
+  - Live monitoring progress (, , , )
   - Real-time error/warning display
 
 - **Metrics Visualization**
-  - **UptimeDisplay** - Circular progress bar (0-100%), 7-day uptime calculation, color-coded status (🚀 Excellent > 99.5%, ✓ Good 95-99.5%, ⚠️ Fair 90-95%, 🔴 Poor < 90%)
+  - **UptimeDisplay** - Circular progress bar (0-100%), 7-day uptime calculation, color-coded status ( Excellent > 99.5%,  Good 95-99.5%, ️ Fair 90-95%,  Poor < 90%)
   - **ErrorDistribution** - Pie chart (Console Errors vs Network Failures)
   - **MetricsChart** - Line chart trends for Response Time (ms), DOM Elements, Total Errors
 
@@ -68,17 +68,17 @@
   - Screenshot viewer modal (full-page mode)
 
 - **Check Results Display**
-  - Status indicator (🟢 SUCCESS / 🔴 FAILED)
+  - Status indicator ( SUCCESS /  FAILED)
   - Timestamp with locale formatting
   - HTTP status codes
   - Visual regression alerts (when detected)
   - RCA alerts with suggested fixes
   - Console/Network error counts with badges
 
-### Stats Bar ✅
+### Stats Bar 
 - Total Checks, Pass Rate %, Registered Sites, Live Connections
 
-### UI Features NOT Implemented ❌
+### UI Features NOT Implemented 
 - **Multi-page Navigation** - No routing, single dashboard only
 - **User Authentication** - No login/permissions system
 - **Export/Reports** - No PDF, CSV export functionality
@@ -98,9 +98,9 @@
 
 ---
 
-## 💾 DATA MANAGEMENT
+##  DATA MANAGEMENT
 
-### Database (SQLite) ✅
+### Database (SQLite) 
 
 **Tables:**
 1. **sites** - Monitored websites
@@ -119,7 +119,7 @@
    - `id`, `site_id` (FK), `check_id` (FK), `response_time_ms`, `dom_elements`
    - `console_errors`, `network_failures`, `timestamp`
 
-### Data Retrieval ✅
+### Data Retrieval 
 - **GET /sites** - List all monitored sites with metadata
 - **GET /sites/{site_id}/history** - Get check history (limit 10-50)
   - Includes full RCA, console logs, network errors
@@ -138,14 +138,14 @@
 - **GET /analytics/summary** - Cross-site analytics
   - Total sites, uptime per site, latest status
 
-### Data Persistence ✅
+### Data Persistence 
 - **Automatic check logging** - Every check creates entry in `checks` table
 - **RCA persistence** - Root causes saved to `root_causes` table
 - **Error details captured** - Console logs and network errors stored as JSON
 - **Metrics logging** - Performance metrics logged to `metrics` table
 - **Site lifecycle** - Sites tracked with creation timestamp
 
-### Data Management NOT Implemented ❌
+### Data Management NOT Implemented 
 - **Backup/Restore** - No database backup utilities
 - **Data Archival** - No automatic data cleanup/archival after X days
 - **Data Retention Policy** - No configurable retention periods
@@ -159,9 +159,9 @@
 
 ---
 
-## 🧠 ANALYSIS FEATURES
+##  ANALYSIS FEATURES
 
-### AI/ML Features ✅
+### AI/ML Features 
 
 **Root Cause Analysis (RCA)**
 - **Triggered on failure** - When HTTP status >= 400 or network errors present
@@ -206,7 +206,7 @@
   - Captured properties: tag, id, text/placeholder, ARIA role
   - Visibility-aware (excludes hidden/off-screen elements)
 
-### AI/ML Features NOT Implemented ❌
+### AI/ML Features NOT Implemented 
 - **Custom ML Models** - Only using Ollama + Gemma (no custom models)
 - **Screenshot Pixel Comparison** - No visual diff highlighting (comparing DOM only)
 - **Pattern Recognition** - No learning from historical failures
@@ -221,21 +221,21 @@
 
 ---
 
-## ⚡ REAL-TIME FEATURES
+##  REAL-TIME FEATURES
 
-### WebSocket ✅
+### WebSocket 
 - **Endpoint:** `GET /ws/status`
 - **Connection Manager** - Handles multiple concurrent connections
 - **30-second ping timeout** - Keeps connections alive
 - **Automatic reconnection** - Client-side 2-second retry on disconnect
 
-### Real-time Messages ✅
+### Real-time Messages 
 1. **Status Messages** (`type: "status"`)
-   - 🔍 Starting HTTP check
-   - 📸 Screenshot captured (HTTP status + element count)
-   - 🔬 UI change detected
-   - 🧠 Analyzing failure with Gemma
-   - ✅ Check completed
+   -  Starting HTTP check
+   -  Screenshot captured (HTTP status + element count)
+   -  UI change detected
+   -  Analyzing failure with Gemma
+   -  Check completed
 
 2. **Result Messages** (`type: "result"`)
    - Full check result with RCA and visual analysis
@@ -245,12 +245,12 @@
 3. **Error Messages** (`type: "error"`)
    - Error details if check fails
 
-### Broadcast Features ✅
+### Broadcast Features 
 - Messages broadcast to all connected clients
 - Automatic cleanup of disconnected clients
 - Queue-less (messages not persisted)
 
-### Real-time Features NOT Implemented ❌
+### Real-time Features NOT Implemented 
 - **Bi-directional Communication** - Client can only receive, not send updates
 - **Message Persistence** - No queue for offline clients
 - **Subscribing to Specific Sites** - All clients receive all updates
@@ -263,15 +263,15 @@
 
 ---
 
-## 📈 HISTORICAL DATA & ANALYTICS
+##  HISTORICAL DATA & ANALYTICS
 
-### Historical Data ✅
+### Historical Data 
 - **Check History** - Persists all checks in SQLite with full details
 - **RCA History** - All RCA results linked to specific checks
 - **Metrics History** - 50+ historical metric snapshots per site
 - **Timestamps** - All checks tagged with ISO 8601 timestamps
 
-### Analytics Features ✅
+### Analytics Features 
 - **Uptime Calculation** - 7-day uptime percentage (SUCCESS count / total count)
 - **Response Time Trending** - Line chart of response_time_ms over time
 - **Error Distribution** - Pie chart of console errors vs network failures
@@ -279,7 +279,7 @@
 - **Per-Site Metrics** - Individual site drill-down with historical data
 - **Cross-Site Summary** - Overall analytics dashboard with all sites
 
-### Analytics Features NOT Implemented ❌
+### Analytics Features NOT Implemented 
 - **Custom Date Ranges** - Fixed 7-day uptime window only
 - **MTTR (Mean Time To Repair)** - No failure duration tracking
 - **SLA Metrics** - No SLA calculation or breach alerts
@@ -294,13 +294,13 @@
 
 ---
 
-## ⚙️ CONFIGURATION & SETTINGS
+## ️ CONFIGURATION & SETTINGS
 
-### Configurable via .env ✅
+### Configurable via .env 
 - `OLLAMA_URL` - Default: `http://127.0.0.1:11434/api/generate`
 - `MODEL_NAME` - Default: `gemma:latest`
 
-### System Configuration ✅
+### System Configuration 
 - **Check Type Selection** - HTTP/API/DNS/TCP per site
 - **Frequency Field** - Stored per site (not used to schedule, just metadata)
 - **Timeout** - 10s default for HTTP/API checks (hardcoded)
@@ -308,7 +308,7 @@
 - **Retry Backoff** - 2, 4, 8 second intervals (hardcoded)
 - **WS Timeout** - 30-second ping interval (hardcoded)
 
-### Configuration NOT Implemented ❌
+### Configuration NOT Implemented 
 - **Scheduling** - No automatic interval-based checks (manual trigger only)
 - **Threshold Configuration** - No configurable alert thresholds
 - **Email/Slack Integration** - No notification channels
@@ -323,9 +323,9 @@
 
 ---
 
-## 🚨 ERROR HANDLING
+##  ERROR HANDLING
 
-### Error Capture ✅
+### Error Capture 
 - **Console Logs** - Real-time browser console capture (log/warn/error/debug)
   - Includes timestamp, level, message
   - Stored as JSON array in database
@@ -338,13 +338,13 @@
 - **HTTP Status Codes** - All status codes captured (redirects, 404s, 5xx errors)
   - Failure marked if status >= 400 or status == 0
 
-### Error Analysis ✅
+### Error Analysis 
 - **RCA Generation** - Gemma analyzes errors in context
 - **Confidence Scoring** - RCA confidence based on evidence
 - **Category Classification** - Frontend|Backend|Network|Database|Infrastructure
 - **Actionable Fixes** - Specific repair steps, not generic advice
 
-### Error Handling NOT Implemented ❌
+### Error Handling NOT Implemented 
 - **Error Grouping** - No deduplication or fingerprinting of similar errors
 - **Error Context** - Limited context (no stack traces, source maps)
 - **Custom Error Handlers** - No user-defined error handling
@@ -356,9 +356,9 @@
 
 ---
 
-## 📸 SCREENSHOTS & VISUAL COMPARISON
+##  SCREENSHOTS & VISUAL COMPARISON
 
-### Screenshot Management ✅
+### Screenshot Management 
 - **Baseline Capture** - First check creates baseline screenshot (full-page)
   - Stored: `screenshots/baselines/{site_id}.png`
   - Never overwritten (first check wins)
@@ -371,14 +371,14 @@
   - Accessible via URL for modal viewing
   - Full resolution available
 
-### Screenshot Comparison ✅
+### Screenshot Comparison 
 - **DOM Distillation** - Extracts interactive elements from DOM
 - **Character-level Comparison** - Baseline vs current DOM comparison
 - **Regression Detection** - Boolean is_regression flag
 - **Severity Levels** - Low|Medium|High severity classification
 - **Change Summary** - Human-readable description of what changed
 
-### Visual Features NOT Implemented ❌
+### Visual Features NOT Implemented 
 - **Pixel-level Diff Tool** - No visual highlighting of differences
 - **Diff Image Generation** - No image comparison with highlighted regions
 - **Before/After Slider** - No interactive baseline vs current slider
@@ -390,22 +390,22 @@
 
 ---
 
-## 📊 PERFORMANCE & ANALYTICS
+##  PERFORMANCE & ANALYTICS
 
-### Metrics Tracked ✅
+### Metrics Tracked 
 - **Response Time** - Milliseconds from request to response
 - **DOM Elements** - Count of interactive elements on page
 - **Console Errors** - Count of error-level logs
 - **Network Failures** - Count of failed HTTP requests
 - **Uptime Percentage** - SUCCESS vs FAILED check ratio
 
-### Performance Features ✅
+### Performance Features 
 - **Metrics Logging** - Per-check metrics persisted to `metrics` table
 - **Historical Trends** - Up to 50 checks retained per site
 - **Metric Retrieval** - `/sites/{site_id}/metrics` API
 - **Trend Visualization** - Line chart of response time and DOM elements
 
-### Performance NOT Tracked ❌
+### Performance NOT Tracked 
 - **First Contentful Paint (FCP)** - No web vitals tracking
 - **Largest Contentful Paint (LCP)** - No core web vitals
 - **Cumulative Layout Shift (CLS)** - No stability metrics
@@ -419,14 +419,14 @@
 
 ---
 
-## 🔒 SECURITY & RELIABILITY
+##  SECURITY & RELIABILITY
 
-### Security Features ✅
+### Security Features 
 - **CORS Enabled** - Allows any origin (development mode)
 - **OpenAPI Documentation** - `/docs` and `/redoc` available
 - **Health Checks** - `/health` endpoint for service status
 
-### Security NOT Implemented ❌
+### Security NOT Implemented 
 - **Authentication** - No login/authentication required
 - **Authorization** - No role-based access control
 - **Input Validation** - No strict URL validation or payload limits
@@ -440,7 +440,7 @@
 - **Audit Logging** - No security event logging
 - **Secrets Management** - .env file not encrypted, hardcoded defaults
 
-### Reliability Features NOT Implemented ❌
+### Reliability Features NOT Implemented 
 - **Database Replication** - Single SQLite instance only
 - **Failover** - No failover mechanism
 - **Load Balancing** - Single-instance only
@@ -452,9 +452,9 @@
 
 ---
 
-## 📋 SUMMARY & GAP ANALYSIS
+##  SUMMARY & GAP ANALYSIS
 
-### Core Strengths ✅
+### Core Strengths 
 1. **Full-stack AI Integration** - Ollama + Gemma for RCA and visual regression
 2. **Multiple Check Types** - HTTP, API, DNS, TCP out of the box
 3. **Real-time Dashboard** - WebSocket-powered live updates
@@ -463,27 +463,27 @@
 6. **Confidence Scoring** - RCA results have confidence metrics
 7. **Browser-native Capture** - Uses Playwright for realistic page loading
 
-### Critical Gaps for Production ✅
+### Critical Gaps for Production 
 
 **High Priority (needed for any scale):**
-- 🔴 **No Scheduling System** - Only manual check triggering
-- 🔴 **No Authentication** - Anyone can access, modify, delete all data
-- 🔴 **No Data Isolation** - All users access same database
-- 🔴 **No Error Grouping** - Duplicate errors shown individually
-- 🔴 **No Alert Notifications** - Results only visible in dashboard
-- 🔴 **No Visual Diff Tool** - Only logcal comparison, no pixel diff
+-  **No Scheduling System** - Only manual check triggering
+-  **No Authentication** - Anyone can access, modify, delete all data
+-  **No Data Isolation** - All users access same database
+-  **No Error Grouping** - Duplicate errors shown individually
+-  **No Alert Notifications** - Results only visible in dashboard
+-  **No Visual Diff Tool** - Only logcal comparison, no pixel diff
 
 **Medium Priority (nice-to-have for PoC):**
-- 🟡 **Export/Reporting** - No way to generate or export reports
-- 🟡 **Bulk Operations** - Can't manage multiple sites efficiently
-- 🟡 **Custom Prompts** - Gemma prompts are hardcoded
-- 🟡 **Multi-page Navigation** - Everything crammed into single page
-- 🟡 **Data Retention** - No automatic cleanup of old data
+-  **Export/Reporting** - No way to generate or export reports
+-  **Bulk Operations** - Can't manage multiple sites efficiently
+-  **Custom Prompts** - Gemma prompts are hardcoded
+-  **Multi-page Navigation** - Everything crammed into single page
+-  **Data Retention** - No automatic cleanup of old data
 
 **Lower Priority (enhancement only):**
-- 🔵 **Performance Profiling** - Could add web vitals tracking
-- 🔵 **Cost Analytics** - Track check execution costs
-- 🔵 **Dependency Graphs** - Visualize failure causality
+-  **Performance Profiling** - Could add web vitals tracking
+-  **Cost Analytics** - Track check execution costs
+-  **Dependency Graphs** - Visualize failure causality
 
 ### Recommended PoC Improvements (Ranked by Impact)
 
@@ -527,18 +527,18 @@
    - Effort: Low (scheduled job + delete SQL)
 
 ### Current PoC Readiness: **6/10**
-- ✅ Can monitor sites
-- ✅ Can capture failures with RCA
-- ✅ Can display results in real-time
-- ❌ Can't schedule checks (manual only)
-- ❌ Can't alert on failures
-- ❌ Can't compare visuals visually
-- ❌ No user authentication
-- ⚠️ Limited to single machine
+-  Can monitor sites
+-  Can capture failures with RCA
+-  Can display results in real-time
+-  Can't schedule checks (manual only)
+-  Can't alert on failures
+-  Can't compare visuals visually
+-  No user authentication
+- ️ Limited to single machine
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 GemmaWatch/
@@ -572,7 +572,7 @@ GemmaWatch/
 
 ---
 
-## 🚀 Quick Start Commands
+##  Quick Start Commands
 
 ```bash
 # Backend

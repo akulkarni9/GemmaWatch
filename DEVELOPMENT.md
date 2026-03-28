@@ -2,7 +2,7 @@
 
 Complete guide for developing and debugging GemmaWatch.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ```bash
 # Terminal 1: Ollama
@@ -19,7 +19,7 @@ curl http://localhost:8002/health
 open http://localhost:5173
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 GemmaWatch/
@@ -66,7 +66,7 @@ GemmaWatch/
 └── screenshots/             # Generated screenshot baselines
 ```
 
-## 🔧 Environment Setup
+##  Environment Setup
 
 ### Backend Environment Variables
 
@@ -86,7 +86,7 @@ Frontend uses Vite, default config loads from `.env*` files:
 - `.env.local` - Git-ignored, local overrides
 - `.env.production` - Production-only variables
 
-## 🏃 Running Services
+##  Running Services
 
 ### Background Execution (Recommended for Development)
 
@@ -118,7 +118,7 @@ lsof -i :5173   # Frontend
 ps aux | grep -E "ollama|uvicorn|node"
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### Backend Tests
 
@@ -166,7 +166,7 @@ npx cypress run
 npx tsc --noEmit
 ```
 
-## 🐛 Debugging
+##  Debugging
 
 ### Backend Debugging
 
@@ -248,14 +248,14 @@ SELECT COUNT(*) FROM checks;
 .quit
 ```
 
-## 🔄 Hot Reload
+##  Hot Reload
 
 Both backend and frontend support hot reload:
 
 - **Backend**: Changes to `.py` files auto-reload (uvicorn `--reload`)
 - **Frontend**: Changes to `.tsx`/`.css` files auto-refresh (Vite HMR)
 
-## 📊 API Testing
+##  API Testing
 
 ### Using cURL
 
@@ -283,7 +283,7 @@ curl -X POST http://localhost:11434/api/generate \
 2. Configure environment: `http://localhost:8002`
 3. Test endpoints
 
-## 🚀 Performance Profiling
+##  Performance Profiling
 
 ### Backend Profiling
 
@@ -305,7 +305,7 @@ open profile.svg
 3. Record user actions
 4. Analyze flame chart
 
-## 📝 Code Quality
+##  Code Quality
 
 ### Format Code
 
@@ -336,17 +336,17 @@ cd frontend
 npm run lint
 ```
 
-## 🔐 Security
+##  Security
 
 ### Secrets Management
 
 **Never commit secrets:**
 ```bash
-# ✅ Good - Add to .gitignore
+#  Good - Add to .gitignore
 .env
 .env.local
 
-# ❌ Bad - Don't hardcode in code
+#  Bad - Don't hardcode in code
 api_key = "sk-1234..."
 secret = "password"
 ```
@@ -363,7 +363,7 @@ pip audit
 npm audit
 ```
 
-## 🚢 Deployment Preview
+##  Deployment Preview
 
 ### Build for Production
 
@@ -380,7 +380,7 @@ npm run build
 npm run preview
 ```
 
-## 📚 Useful Commands Cheatsheet
+##  Useful Commands Cheatsheet
 
 | Command | Purpose |
 |---------|---------|
@@ -427,7 +427,7 @@ kill -9 <PID>
 rm backend/gemmawatch.db  # Reset if needed
 ```
 
-## 📖 Further Resources
+##  Further Resources
 
 - [README.md](README.md) - Main documentation
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guide
@@ -438,4 +438,4 @@ rm backend/gemmawatch.db  # Reset if needed
 
 ---
 
-**Happy coding! 🚀**
+**Happy coding! **

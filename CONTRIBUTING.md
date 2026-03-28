@@ -2,21 +2,21 @@
 
 Thank you for your interest in contributing! This document provides guidelines and instructions for contributing to GemmaWatch.
 
-## 🎯 Project Vision
+##  Project Vision
 
 GemmaWatch is an **AI-powered visual regression & monitoring platform** using Ollama + Gemma for RCA, visual regression detection, and real-time dashboards.
 
 **Current Focus**: Building a robust PoC (50% complete). Our primary goal is to implement the **Big 3** features:
-1. ✅ Core monitoring (HTTP, API, DNS, TCP)
-2. ✅ AI-powered RCA (Gemma integration)
-3. ❌ Scheduling engine (autonomous check execution)
-4. ❌ Alert system (Email/Slack notifications)
-5. ❌ Visual diff tool (pixel-level comparison)
+1.  Core monitoring (HTTP, API, DNS, TCP)
+2.  AI-powered RCA (Gemma integration)
+3.  Scheduling engine (autonomous check execution)
+4.  Alert system (Email/Slack notifications)
+5.  Visual diff tool (pixel-level comparison)
 
 ### TODO Features for Future
 See [README.md - TODO Section](README.md#-todo---future-implementation) for full feature roadmap.
 
-## 🛠️ Development Setup
+## ️ Development Setup
 
 ### Prerequisites
 - Python 3.9+
@@ -52,7 +52,7 @@ cd backend && source venv/bin/activate && python -m uvicorn main:app --host 127.
 cd frontend && npm run dev
 ```
 
-## 📝 Code Style Guide
+##  Code Style Guide
 
 ### Python
 - Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/)
@@ -105,7 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 };
 ```
 
-## 🔄 Git Workflow
+##  Git Workflow
 
 ### Branch Naming
 - Feature: `feature/description` (e.g., `feature/scheduling-engine`)
@@ -130,7 +130,7 @@ test: Add unit tests for RCA generation
 4. Update documentation if needed
 5. Submit PR with clear description of changes
 
-## 🧪 Testing
+##  Testing
 
 ### Backend Tests
 ```bash
@@ -154,7 +154,7 @@ npx cypress open  # Interactive mode
 npx cypress run  # Headless mode
 ```
 
-## 📊 Code Organization
+##  Code Organization
 
 ### Backend Structure
 ```
@@ -187,7 +187,7 @@ frontend/
   └── vite.config.ts      # Build config
 ```
 
-## 🔍 Before Submitting PR
+##  Before Submitting PR
 
 - [ ] Code follows style guide
 - [ ] All tests pass (`pytest` / `npm run test`)
@@ -196,7 +196,7 @@ frontend/
 - [ ] Commit messages are descriptive
 - [ ] No secret keys/credentials in code
 
-## 🐛 Reporting Issues
+##  Reporting Issues
 
 1. **Check existing issues** - Avoid duplicates
 2. **Provide context**:
@@ -207,7 +207,7 @@ frontend/
 
 3. **Use issue template** (if available)
 
-## 📚 Development Resources
+##  Development Resources
 
 - **Architecture**: See [README.md - Architecture](README.md#architecture)
 - **API Endpoints**: See [README.md - API Endpoints](README.md#-api-endpoints)
@@ -216,7 +216,7 @@ frontend/
 - **FastAPI Docs**: https://fastapi.tiangolo.com/
 - **React Docs**: https://react.dev/
 
-## 🎯 Priority Features (Low Hanging Fruit)
+##  Priority Features (Low Hanging Fruit)
 
 Good starting points for contributors:
 
@@ -236,7 +236,7 @@ Good starting points for contributors:
    - Effort: Medium (~8 hours)
    - Impact: Better UX for 5+ monitored sites
 
-## ❓ Questions?
+##  Questions?
 
 - Check [README.md](README.md) for general info
 - Review [FEATURE_INVENTORY.md](FEATURE_INVENTORY.md) for detailed feature status
@@ -244,4 +244,4 @@ Good starting points for contributors:
 
 ---
 
-**Thank you for contributing to GemmaWatch! 🚀**
+**Thank you for contributing to GemmaWatch! **

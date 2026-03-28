@@ -381,16 +381,16 @@ npm run cypress:run       # Run all E2E tests headless
 
 | Feature | Unit Tests | E2E Tests | Coverage |
 |---------|-----------|----------|----------|
-| Dashboard Rendering | ✅ | ✅ | Comprehensive |
-| WebSocket Communication | ✅ | ✅ | Full |
-| Search Functionality | ✅ | ✅ | Complete |
-| Status Display | ✅ | ✅ | All Status Types |
-| Metrics Visualization | ✅ | ✅ | 3 Components |
-| Site Management | ❌ | ✅ | CRUD Operations |
-| Error Handling | ✅ | ✅ | Multiple Scenarios |
-| Accessibility | ✅ | ✅ | Full a11y |
-| Responsive Design | ✅ | ✅ | All Viewports |
-| Performance | ✅ | ✅ | Large Datasets |
+| Dashboard Rendering |  |  | Comprehensive |
+| WebSocket Communication |  |  | Full |
+| Search Functionality |  |  | Complete |
+| Status Display |  |  | All Status Types |
+| Metrics Visualization |  |  | 3 Components |
+| Site Management |  |  | CRUD Operations |
+| Error Handling |  |  | Multiple Scenarios |
+| Accessibility |  |  | Full a11y |
+| Responsive Design |  |  | All Viewports |
+| Performance |  |  | Large Datasets |
 
 ---
 
@@ -474,14 +474,14 @@ Potential areas for additional testing:
 
 When adding new features, ensure:
 
-1. ✅ Unit tests cover component logic
-2. ✅ E2E tests cover user workflows
-3. ✅ Edge cases are tested
-4. ✅ Error scenarios are handled
-5. ✅ Accessibility (a11y) is verified
-6. ✅ Responsive design is validated
-7. ✅ Performance is acceptable
-8. ✅ Tests are documented
+1.  Unit tests cover component logic
+2.  E2E tests cover user workflows
+3.  Edge cases are tested
+4.  Error scenarios are handled
+5.  Accessibility (a11y) is verified
+6.  Responsive design is validated
+7.  Performance is acceptable
+8.  Tests are documented
 
 ---
 

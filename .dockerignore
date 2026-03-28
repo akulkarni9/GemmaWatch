@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+venv/
+backend/venv/
+.git
+.gitignore
+.env
+.env.local
+screenshots/
+gemmawatch.db

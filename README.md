@@ -2,11 +2,11 @@
 
 An intelligent web monitoring platform powered by Ollama + Gemma for root cause analysis, visual regression detection, and real-time dashboards.
 
-## 🎯 Current Status
+## Current Status
 
-**PoC Completeness: 50%** ✅
+**PoC Completeness: 50%**
 
-### ✅ What's Implemented
+### What's Implemented
 - **Multi-type Monitoring**: HTTP, REST API, DNS, TCP checks
 - **AI-Powered Analysis**: Gemma-based root cause analysis with confidence scoring
 - **Real-time Dashboard**: WebSocket updates, live activity feed, interactive UI
@@ -141,7 +141,7 @@ An intelligent web monitoring platform powered by Ollama + Gemma for root cause 
 | **Data** | SQLite | Persistent storage (checks, RCA, metrics) |
 | **Real-time** | WebSocket | Live dashboard updates |
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.9+
@@ -182,7 +182,7 @@ Access dashboard: **http://localhost:5173**
 
 ---
 
-## 📖 Detailed Setup Instructions
+##  Detailed Setup Instructions
 
 ### Step 1: Install & Start Ollama
 
@@ -294,10 +294,10 @@ curl http://localhost:8002/health
 ```
 
 **Important Notes:**
-- ⚠️ **Always activate venv** before running backend (`source venv/bin/activate`)
-- ⚠️ **Never skip installing requirements** - backend won't work without dependencies
-- ✅ **Keep the backend running** in a separate terminal while developing
-- ✅ **Check health endpoint** to verify Ollama connection
+- **Always activate venv** before running backend (`source venv/bin/activate`)
+- **Never skip installing requirements** - backend won't work without dependencies
+- **Keep the backend running** in a separate terminal while developing
+- **Check health endpoint** to verify Ollama connection
 
 ---
 
@@ -338,8 +338,8 @@ npm run dev
 
 # Expected output:
 #   VITE v4.x.x  ready in XXX ms
-#   ➜  Local:   http://localhost:5173/
-#   ➜  Press h for help, q to quit
+#     Local:   http://localhost:5173/
+#     Press h for help, q to quit
 ```
 
 #### 3E. Verify Frontend is Running
@@ -352,10 +352,10 @@ curl http://localhost:5173
 ```
 
 **Important Notes:**
-- ✅ **Don't skip npm install** - React and Vite need to be installed
-- ✅ **Wait for "ready" message** before opening browser
-- ✅ **Keep the dev server running** in a separate terminal
-- ⚠️ **Hot reload enabled** - Changes to code automatically refresh browser
+- **Don't skip npm install** - React and Vite need to be installed
+- **Wait for "ready" message** before opening browser
+- **Keep the dev server running** in a separate terminal
+- **Hot reload enabled** - Changes to code automatically refresh browser
 
 ---
 
@@ -380,7 +380,7 @@ chromium http://localhost:5173
 
 ---
 
-## 🎮 Using the Dashboard
+##  Using the Dashboard
 
 Once all services are running and verified:
 
@@ -391,7 +391,7 @@ Once all services are running and verified:
 
 ---
 
-## 🔧 Common Commands Reference
+##  Common Commands Reference
 
 ### Backend
 ```bash
@@ -447,7 +447,7 @@ curl http://localhost:11434/api/generate -d '{"model":"gemma:latest","prompt":"h
 
 ---
 
-## 📊 Service Ports Reference
+##  Service Ports Reference
 
 | Service | URL | Purpose |
 |---------|-----|---------|
@@ -458,7 +458,7 @@ curl http://localhost:11434/api/generate -d '{"model":"gemma:latest","prompt":"h
 
 ---
 
-## 🔧 Backend Setup Troubleshooting
+##  Backend Setup Troubleshooting
 
 ### "ModuleNotFoundError: No module named 'fastapi'"
 **Problem**: Dependencies weren't installed or venv wasn't activated
@@ -605,7 +605,230 @@ cd backend && rm -rf venv && python3 -m venv venv && source venv/bin/activate &&
 
 ---
 
-## 📝 Database Reset
+## � Deployment (Production)
+
+### Overview
+- **Frontend**: Deployed to Vercel (free, auto-scaling)
+- **Backend**: Deployed to Railway.app using Docker (free tier: $5/month credit)
+- **Ollama**: Keep running locally or use external API
+
+### Frontend Deployment (Vercel)
+
+**Already Deployed**: Frontend is live at https://gemmawatch.vercel.app
+
+**Steps taken:**
+1. Configured environment variables for API URLs
+2. Pushed code to GitHub
+3. Connected Vercel to repo (auto-deploys on push)
+
+**Current Status:**
+```
+Frontend: https://gemmawatch.vercel.app
+```
+
+---
+
+### Backend Deployment (Railway)
+
+#### Prerequisites
+- Railway.app account (free sign-up: https://railway.app)
+- GitHub account (already have)
+- Docker installed locally (only for testing, Railway builds it)
+
+#### Step 1: Create Railway Account
+```bash
+# Go to https://railway.app
+# Sign up with GitHub (recommended)
+# Authorize railway.app to access your repos
+```
+
+#### Step 2: Connect GemmaWatch Repo to Railway
+1. Log into Railway dashboard
+2. Click "Create New Project"
+3. Select "Deploy from GitHub repo"
+4. Search for `GemmaWatch` repo
+5. Click "Deploy"
+
+Railway automatically detects:
+- `Dockerfile` in root (uses it to build container)
+- Environment variables settings
+
+#### Step 3: Configure Environment Variables
+In Railway dashboard → Project → Variables:
+
+```
+OLLAMA_URL=http://localhost:11434
+MODEL_NAME=gemma:latest
+DEBUG=false
+LOG_LEVEL=info
+```
+
+**Note about OLLAMA_URL:**
+- If Ollama not available: backend will skip RCA, still monitor sites
+- To enable Ollama: expose local Ollama via ngrok tunnel (advanced)
+- Or replace with external API endpoint if using hosted Ollama
+
+#### Step 4: Wait for Deployment
+**Expected output in Railway logs:**
+```
+[INFO] Building image...
+[INFO] Installing dependencies...
+[INFO] Starting application...
+Application running on http://0.0.0.0:PORT
+```
+
+Railway builds Docker image and deploys:
+- Pull dependencies (requirements.txt)
+- Build Docker container
+- Deploy to Railway servers
+- Assign public domain name
+
+#### Step 5: Get the Backend URL
+In Railway dashboard:
+1. Click "Deployments"
+2. Find "Production" deployment
+3. Copy the public URL (looks like: `https://gemmawatch-backend.railway.app`)
+
+#### Step 6: Update Frontend Environment Variable
+Update the frontend to point to deployed backend:
+
+**Option A: Update in Vercel Dashboard**
+1. Go to https://vercel.com → GemmaWatch project
+2. Settings → Environment Variables
+3. Update `VITE_API_BASE`:
+   ```
+   VITE_API_BASE=https://gemmawatch-backend.railway.app
+   VITE_WS_BASE=wss://gemmawatch-backend.railway.app
+   ```
+4. Click "Save" (triggers redeploy)
+
+**Option B: Update in Code & Push**
+1. Edit `frontend/.env.example`:
+   ```
+   VITE_API_BASE=https://gemmawatch-backend.railway.app
+   VITE_WS_BASE=wss://gemmawatch-backend.railway.app
+   ```
+2. In your local code, update Dashboard.tsx if hardcoded
+3. Run: `git add . && git commit -m "Update backend URL" && git push origin main`
+4. Vercel auto-redeploys
+
+#### Step 7: Verify Deployment
+```bash
+# Test backend health
+curl https://gemmawatch-backend.railway.app/health
+
+# Expected response:
+# {"status":"healthy","gemma_available":false}
+# (gemma_available=false is OK if Ollama not configured)
+```
+
+#### Step 8: Test Full Integration
+1. Open https://gemmawatch.vercel.app in browser
+2. Add a site (e.g., https://google.com)
+3. Run a check
+4. Verify results appear in real-time
+
+---
+
+### Important Notes on Ollama
+
+**Current Setup**: Ollama runs on your local machine
+- Monitoring/screenshots work without Ollama
+- RCA analysis is optional (skipped if Ollama unavailable)
+- Backend can't reach local Ollama from Railway servers
+
+**If you need RCA on deployed app:**
+
+**Option 1: Keep Ollama Local (Dev-only)**
+```bash
+# On your local machine, keep running:
+ollama serve
+# This only works when you're offline testing
+```
+
+**Option 2: Use External Ollama API** (Production-Ready)
+```bash
+# Set OLLAMA_URL to hosted endpoint
+# Examples: Replicate.com, HuggingFace Inference, etc.
+OLLAMA_URL=https://api.replicate.com/v1/predictions
+```
+
+**Option 3: Deploy Ollama to Cloud** (Advanced)
+```bash
+# Expensive but works:
+# - AWS EC2 t2.small (~$33/month)
+# - DigitalOcean Droplet ($5/month minimum)
+# - Include Docker image in Railway
+```
+
+For now, **Option 1 (dev-only)** is recommended. The monitoring still works great without RCA!
+
+---
+
+### Troubleshooting Deployment
+
+**"Backend deployment failed"**
+```
+Check Railway build logs:
+1. Go to Railway dashboard
+2. Click "Logs" tab
+3. Look for build errors
+Common issues:
+- requirements.txt has unsupported package
+- PORT environment variable not set
+Solution: Check Docker layer-by-layer
+```
+
+**"Frontend can't reach backend"**
+```
+1. Verify backend URL is correct:
+   curl https://gemmawatch-backend.railway.app/health
+
+2. Check CORS is enabled in FastAPI (it is by default)
+
+3. Verify env variables in Vercel:
+   Dashboard → Settings → Environment Variables
+   VITE_API_BASE should point to Railway URL
+   Trigger redeploy after changing
+
+4. Check browser console (F12) for exact errors
+```
+
+**"WebSocket connection fails"**
+```
+1. WebSocket URL must use "wss://" (secure) for https sites
+2. Verify: VITE_WS_BASE=wss://your-backend-url (not http://)
+3. Check that + is configured in both env vars and code
+```
+
+**"Slow/no response from deployed backend"**
+```
+Railway free tier has sleep mode:
+- Projects sleep after 7 days inactivity
+- First request wakes them up (~10 second wait)
+Solution:
+- Keep making checks regularly
+- Or upgrade Railway plan ($7+/month for always-on)
+```
+
+---
+
+### Deployment Summary Checklist
+
+- [ ] Create Railway account at railway.app
+- [ ] Connect GitHub repo to Railway
+- [ ] Deploy to Railway (auto from Dockerfile)
+- [ ] Note the Railway backend URL
+- [ ] Update Vercel env variables with new backend URL
+- [ ] Wait for Vercel redeploy
+- [ ] Test: `curl https://backend-url/health`
+- [ ] Open https://gemmawatch.vercel.app
+- [ ] Add a site and run a check
+- [ ] Verify real-time updates work
+
+---
+
+## Database Reset
 
 If you want to start fresh (delete all monitored sites and checks):
 
@@ -615,25 +838,25 @@ rm gemmawatch.db
 # Database will be recreated automatically on next run
 ```
 
-## 📊 Feature Completeness
+##  Feature Completeness
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| HTTP Monitoring | ✅ | Full-page screenshot, status tracking |
-| API Monitoring | ✅ | GET/POST, response validation |
-| DNS/TCP Checks | ✅ | Connectivity validation |
-| AI Root Cause Analysis | ✅ | Gemma integration with confidence scoring |
-| Visual Regression | ✅ | DOM-level detection, baseline comparison |
-| Real-time Dashboard | ✅ | WebSocket live updates |
-| Check History | ✅ | 50-check historical retrieval |
-| Error Details | ✅ | Console logs + network errors stored |
-| Metrics & Charts | ✅ | Uptime %, response time, error distribution |
+| HTTP Monitoring | Implemented | Full-page screenshot, status tracking |
+| API Monitoring | Implemented | GET/POST, response validation |
+| DNS/TCP Checks | Implemented | Connectivity validation |
+| AI Root Cause Analysis | Implemented | Gemma integration with confidence scoring |
+| Visual Regression | Implemented | DOM-level detection, baseline comparison |
+| Real-time Dashboard | Implemented | WebSocket live updates |
+| Check History | Implemented | 50-check historical retrieval |
+| Error Details | Implemented | Console logs + network errors stored |
+| Metrics & Charts | Implemented | Uptime %, response time, error distribution |
 
 ---
 
-## 📋 TODO - Future Implementation
+##  TODO - Future Implementation
 
-### 🔴 Critical (Week 1-2)
+###  Critical (Week 1-2)
 - [ ] **Scheduling Engine** - Autonomous check execution (cron/intervals)
   - Solution: APScheduler integration
   - Impact: Converts manual tool → 24/7 monitoring
@@ -649,7 +872,7 @@ rm gemmawatch.db
   - Impact: Show *what* changed in screenshots
   - Effort: 12 hours
 
-### 🟠 High Priority (Week 2-3)
+###  High Priority (Week 2-3)
 - [ ] **Authentication & Authorization** - Password protection + role-based access
   - Solution: FastAPI security middleware + JWT tokens
   - Effort: 4 hours
@@ -662,7 +885,7 @@ rm gemmawatch.db
   - Solution: Form inputs for cron/interval + validation
   - Effort: 4 hours
 
-### 🟡 Nice-to-Have (Week 3+)
+###  Nice-to-Have (Week 3+)
 - [ ] Report Export (PDF/CSV)
 - [ ] Multi-page Dashboard (React Router)
 - [ ] Data Retention Policies (automatic cleanup)
@@ -674,7 +897,7 @@ rm gemmawatch.db
 - [ ] Dashboard Customization (drag/drop widgets)
 - [ ] Team Collaboration (shared workspaces)
 
-### 🔵 Optional Enhancements
+###  Optional Enhancements
 - [ ] gRPC/GraphQL monitoring
 - [ ] WebSocket monitoring
 - [ ] SSL Certificate validation
@@ -686,7 +909,7 @@ rm gemmawatch.db
 
 ---
 
-## 🗄️ Database Schema
+## ️ Database Schema
 
 ### Tables
 - **sites** - Monitored URLs with check type
@@ -702,7 +925,7 @@ rm gemmawatch.db
 
 ---
 
-## 🎯 Demo Scenarios
+## Demo Scenarios
 
 ### Current (Manual)
 1. Add a URL via dashboard
@@ -718,7 +941,7 @@ rm gemmawatch.db
 
 ---
 
-## 📝 API Endpoints
+## API Endpoints
 
 ### Monitoring
 - `POST /monitor` - Trigger manual check
@@ -738,7 +961,7 @@ rm gemmawatch.db
 
 ---
 
-## 🛠️ Architecture Decisions
+## ️ Architecture Decisions
 
 ### Why Ollama + Gemma?
 - Local LLM execution (no API calls)
@@ -760,7 +983,7 @@ rm gemmawatch.db
 
 ---
 
-## 🔒 Security (TODO)
+##  Security (TODO)
 
 Currently **NO AUTHENTICATION** - add before production:
 - [ ] Password protection
@@ -772,7 +995,7 @@ Currently **NO AUTHENTICATION** - add before production:
 
 ---
 
-## 📈 Performance Notes
+##  Performance Notes
 
 - WebSocket reconnection: 2-second retry
 - Historical results: Limit 50 checks per query
@@ -781,13 +1004,13 @@ Currently **NO AUTHENTICATION** - add before production:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Future: Contribution guidelines, issue templates, PR process
 
-## 📄 License
+## License
 
-TBD
+This project is licensed under the GNU General Public License v3.0 - see [LICENSE](LICENSE) file for details.
 
 ---
 
