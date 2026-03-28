@@ -943,6 +943,15 @@ rm gemmawatch.db
 
 ## API Endpoints
 
+### Interactive API Documentation
+
+Once the backend is running on port 8002, view the interactive API docs:
+
+- **Swagger UI**: http://localhost:8002/docs - Full endpoint browser with test functionality
+- **ReDoc**: http://localhost:8002/redoc - Alternative API reference documentation
+
+Both docs are auto-generated from the FastAPI code and always reflect the current endpoints.
+
 ### Monitoring
 - `POST /monitor` - Trigger manual check
 - `GET /sites` - List all monitored sites
