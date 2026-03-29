@@ -34,7 +34,7 @@ This Code of Conduct applies both within project spaces and in public spaces whe
 
 ## Contact
 
-If you are subject to or witness unacceptable behavior, or have any other concerns, please email contact@example.com (to be updated with actual contact info).
+If you are subject to or witness unacceptable behavior, or have any other concerns, please email ajaykulkarni178@gmail.com
 
 ---
 
