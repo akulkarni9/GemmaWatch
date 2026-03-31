@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Activity, AlertTriangle, CheckCircle, Search, RefreshCw, Eye,
-  Image as ImageIcon, Plus, Trash2, Globe, X, BarChart3, Wifi
+  Image as ImageIcon, Plus, Trash2, Globe, X, BarChart3, Wifi,
+  Lock
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import MetricsChart from './MetricsChart';
 import UptimeDisplay from './UptimeDisplay';
 import ErrorDistribution from './ErrorDistribution';
@@ -48,6 +50,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8002';
 const WS_BASE = import.meta.env.VITE_WS_BASE || 'ws://localhost:8002';
 
 const Dashboard: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [results, setResults] = useState<MonitoringResult[]>([]);
   const [messages, setMessages] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -299,29 +302,7 @@ const Dashboard: React.FC = () => {
   const passRate = totalChecks > 0 ? Math.round((passCount / totalChecks) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#050510] text-gray-100 p-8 font-outfit">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Activity className="text-white w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-600 bg-clip-text text-transparent">
-              GemmaWatch AI
-            </h1>
-            <p className="text-gray-500 text-sm">Visual & Agentic Monitoring v2</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowAddSite(true)}
-          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-2 transition-all text-sm font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Add Site
-        </button>
-      </header>
-
+    <div className="p-6 lg:p-10 font-outfit">
       {/* Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
@@ -345,18 +326,24 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-1 space-y-6">
           {/* Registered Sites */}
           <section className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-white">
                 <Globe className="w-5 h-5 text-indigo-400" />
-                Monitored Sites
+                Registered Sites
               </h2>
-              <button 
-                onClick={() => fetchSites()} 
-                className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 transition"
-                title="Refresh list"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={() => setShowAddSite(true)}
+                  className="p-2 rounded-lg bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all"
+                  title="Add New Site"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="p-2 text-slate-600" title="Admin only">
+                  <Lock className="w-4 h-4" />
+                </div>
+              )}
             </div>
 
             {/* Search & Filter */}
@@ -427,17 +414,19 @@ const Dashboard: React.FC = () => {
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteSite(site.id);
-                        if (selectedSiteId === site.id) setSelectedSiteId(null);
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition"
-                      title="Delete site"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSite(site.id);
+                          if (selectedSiteId === site.id) setSelectedSiteId(null);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition"
+                        title="Delete site"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -487,12 +476,6 @@ const Dashboard: React.FC = () => {
               {/* Site Details Panel */}
               {(() => {
                 const selectedResult = results.find(r => r.site_id === selectedSiteId);
-                console.log('🔍 SiteDetails debug:', {
-                  selectedSiteId,
-                  totalResults: results.length,
-                  resultSiteIds: results.map(r => r.site_id),
-                  matchFound: !!selectedResult
-                });
                 return <SiteDetails 
                   selectedResult={selectedResult || null}
                   onViewScreenshot={(url) => setScreenshotModal(url)}
@@ -505,7 +488,9 @@ const Dashboard: React.FC = () => {
 
           {results.length === 0 && (
             <div className="bg-white/5 backdrop-blur-md rounded-2xl p-12 border border-white/10 text-center">
-              <Activity className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Activity className="w-6 h-6 text-blue-400" />
+              </div>
               <p className="text-gray-500">No check results yet. Add a site and trigger the agent!</p>
             </div>
           )}
@@ -657,7 +642,7 @@ const Dashboard: React.FC = () => {
 
       {/* Screenshot Modal */}
       {screenshotModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={() => setScreenshotModal(null)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-8" onClick={() => setScreenshotModal(null)}>
           <div className="relative max-w-4xl max-h-[90vh] overflow-auto rounded-2xl border border-white/10" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setScreenshotModal(null)} className="absolute top-3 right-3 bg-black/50 p-1.5 rounded-full text-white hover:bg-black/80 z-10">
               <X className="w-5 h-5" />
@@ -669,7 +654,7 @@ const Dashboard: React.FC = () => {
 
       {/* Console Logs Modal */}
       {consoleLogsModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={() => setConsoleLogsModal(null)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-8" onClick={() => setConsoleLogsModal(null)}>
           <div className="bg-[#0a0a1a] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-[#0a0a1a] p-6 border-b border-white/10 flex justify-between items-center">
               <h3 className="text-xl font-bold">Console Logs</h3>
@@ -713,7 +698,7 @@ const Dashboard: React.FC = () => {
 
       {/* Network Errors Modal */}
       {networkErrorsModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={() => setNetworkErrorsModal(null)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-8" onClick={() => setNetworkErrorsModal(null)}>
           <div className="bg-[#0a0a1a] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-[#0a0a1a] p-6 border-b border-white/10 flex justify-between items-center">
               <h3 className="text-xl font-bold">Network Errors</h3>
@@ -756,7 +741,7 @@ const Dashboard: React.FC = () => {
 
       {/* Add Site Modal */}
       {showAddSite && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={() => setShowAddSite(false)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-8" onClick={() => setShowAddSite(false)}>
           <div className="bg-[#0a0a1a] rounded-2xl border border-white/10 p-8 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-bold mb-6">Add Monitored Site</h3>
             <div className="space-y-4">

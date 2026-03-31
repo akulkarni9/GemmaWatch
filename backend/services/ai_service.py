@@ -10,25 +10,29 @@ MODEL_NAME = os.getenv("MODEL_NAME", "gemma:latest")
 
 
 class AIService:
-    async def _call_gemma(self, prompt: str):
+    async def _call_ollama(self, prompt: str, is_json: bool = False):
         async with httpx.AsyncClient() as client:
             try:
-                print(f"DEBUG: Calling Ollama at {OLLAMA_URL} with model {MODEL_NAME}")
+                print(f"DEBUG: Calling Ollama at {OLLAMA_URL} with model {MODEL_NAME} (is_json={is_json})")
+                
+                payload = {
+                    "model": MODEL_NAME,
+                    "prompt": prompt,
+                    "stream": False
+                }
+                if is_json:
+                    payload["format"] = "json"
+                
                 response = await client.post(
                     OLLAMA_URL,
-                    json={
-                        "model": MODEL_NAME,
-                        "prompt": prompt,
-                        "stream": False,
-                        "format": "json"
-                    },
+                    json=payload,
                     timeout=60.0
                 )
                 print(f"DEBUG: Ollama response status: {response.status_code}")
                 
                 if response.status_code == 200:
                     result = response.json().get("response")
-                    print(f"DEBUG: Gemma response: {result}")
+                    print(f"DEBUG: Ollama response: {result}")
                     return result
                 else:
                     # Log the full error response
@@ -38,10 +42,10 @@ class AIService:
                     except:
                         print(f"DEBUG: Ollama error text: {response.text}")
                     print(f"DEBUG: Ollama error - status {response.status_code}")
-                    return {"error": f"Ollama error: {response.status_code}"}
+                    return {"error": f"Ollama error: {response.status_code}"} if is_json else f"Ollama error: {response.status_code}"
             except Exception as e:
-                print(f"DEBUG: Gemma call failed - {type(e).__name__}: {str(e)}")
-                return {"error": str(e)}
+                print(f"DEBUG: Ollama call failed - {type(e).__name__}: {str(e)}")
+                return {"error": str(e)} if is_json else f"Error: {str(e)}"
 
     async def analyze_failure(self, distilled_dom: str, console_logs: list, network_errors: list, error_message: str):
         # Format logs for readability
@@ -82,7 +86,7 @@ Return ONLY valid JSON:
   "category": "Frontend|Backend|Network|Database|Infrastructure"
 }}"""
         
-        result = await self._call_gemma(prompt)
+        result = await self._call_ollama(prompt, is_json=True)
         print(f"DEBUG: Raw result from Gemma: {result}")
         return result
 
@@ -105,7 +109,7 @@ Return ONLY valid JSON:
           "impact": "What user action is blocked?"
         }}
         """
-        return await self._call_gemma(prompt)
+        return await self._call_ollama(prompt, is_json=True)
 
     async def check_connection(self) -> bool:
         """Check if Ollama is running and Gemma model is available."""

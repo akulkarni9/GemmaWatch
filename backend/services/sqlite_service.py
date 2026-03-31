@@ -15,7 +15,7 @@ class SQLiteService:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             
-            # Sites Table
+            # ── Sites Table ──────────────────────────────────────────────────────
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS sites (
                     id TEXT PRIMARY KEY,
@@ -27,24 +27,19 @@ class SQLiteService:
                 )
             """)
             
-            # Schema migrations - add missing columns to existing tables
+            # ── Schema migrations (non-destructive) ──────────────────────────────
             cursor.execute("PRAGMA table_info(sites)")
-            sites_columns = [col[1] for col in cursor.fetchall()]
-            if 'check_type' not in sites_columns:
-                cursor.execute("ALTER TABLE sites ADD COLUMN check_type TEXT DEFAULT 'http'")
-                print("INFO: Added check_type column to sites table")
-            
-            # Add detailed logs columns to checks table
-            cursor.execute("PRAGMA table_info(checks)")
-            checks_columns = [col[1] for col in cursor.fetchall()]
-            if 'console_logs_json' not in checks_columns:
-                cursor.execute("ALTER TABLE checks ADD COLUMN console_logs_json TEXT")
-                print("INFO: Added console_logs_json column to checks table")
-            if 'network_errors_json' not in checks_columns:
-                cursor.execute("ALTER TABLE checks ADD COLUMN network_errors_json TEXT")
-                print("INFO: Added network_errors_json column to checks table")
-            
-            # Checks Table
+            sites_cols = [col[1] for col in cursor.fetchall()]
+            for col, definition in [
+                ("check_type",     "TEXT DEFAULT 'http'"),
+                ("last_checked_at","TIMESTAMP"),
+                ("next_check_at",  "TIMESTAMP"),
+            ]:
+                if col not in sites_cols:
+                    cursor.execute(f"ALTER TABLE sites ADD COLUMN {col} {definition}")
+                    print(f"INFO: Added {col} column to sites table")
+
+            # ── Checks Table ─────────────────────────────────────────────────────
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS checks (
                     id TEXT PRIMARY KEY,
@@ -58,8 +53,14 @@ class SQLiteService:
                     FOREIGN KEY(site_id) REFERENCES sites(id)
                 )
             """)
-            
-            # RootCauses Table
+            cursor.execute("PRAGMA table_info(checks)")
+            checks_cols = [col[1] for col in cursor.fetchall()]
+            for col in ("console_logs_json", "network_errors_json"):
+                if col not in checks_cols:
+                    cursor.execute(f"ALTER TABLE checks ADD COLUMN {col} TEXT")
+                    print(f"INFO: Added {col} column to checks table")
+
+            # ── RootCauses Table ─────────────────────────────────────────────────
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS root_causes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,8 +71,8 @@ class SQLiteService:
                     FOREIGN KEY(check_id) REFERENCES checks(id)
                 )
             """)
-            
-            # Metrics Table (for analytics)
+
+            # ── Metrics Table ─────────────────────────────────────────────────────
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS metrics (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +87,181 @@ class SQLiteService:
                     FOREIGN KEY(check_id) REFERENCES checks(id)
                 )
             """)
-            
+
+            # ── Auth: Users ───────────────────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    email TEXT NOT NULL UNIQUE,
+                    name TEXT,
+                    avatar_url TEXT,
+                    provider TEXT NOT NULL,
+                    provider_id TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT 'viewer',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_login_at TIMESTAMP,
+                    UNIQUE(provider, provider_id)
+                )
+            """)
+
+            # ── Auth: Refresh Tokens ──────────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS refresh_tokens (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    token_hash TEXT NOT NULL UNIQUE,
+                    expires_at TIMESTAMP NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    revoked INTEGER DEFAULT 0,
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            """)
+
+            # ── Catalogue: Shadow (low-confidence, never reviewed) ────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS shadow_catalogue (
+                    id TEXT PRIMARY KEY,
+                    check_id TEXT,
+                    probable_cause TEXT,
+                    confidence REAL,
+                    category TEXT,
+                    raw_rca_json TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ── Catalogue: Pending (HITL review queue) ───────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS pending_catalogue (
+                    id TEXT PRIMARY KEY,
+                    check_id TEXT,
+                    rca_json TEXT NOT NULL,
+                    confidence REAL,
+                    category TEXT,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    reviewer_id TEXT,
+                    reviewer_note TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_at TIMESTAMP,
+                    FOREIGN KEY(reviewer_id) REFERENCES users(id)
+                )
+            """)
+
+            # ── Catalogue: Primary (approved, ground truth) ───────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS primary_catalogue (
+                    id TEXT PRIMARY KEY,
+                    category TEXT NOT NULL,
+                    probable_cause TEXT NOT NULL,
+                    repair_action TEXT,
+                    confidence REAL,
+                    evidence_json TEXT,
+                    approved_by TEXT,
+                    last_matched_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(approved_by) REFERENCES users(id)
+                )
+            """)
+
+            # ── Anomaly Events ────────────────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS anomaly_events (
+                    id TEXT PRIMARY KEY,
+                    site_id TEXT NOT NULL,
+                    check_id TEXT,
+                    z_score REAL,
+                    metric_type TEXT,
+                    baseline_mean REAL,
+                    baseline_std REAL,
+                    observed_value REAL,
+                    gemma_interpretation TEXT,
+                    severity TEXT DEFAULT 'low',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(site_id) REFERENCES sites(id)
+                )
+            """)
+
+            # ── Incidents (cross-site correlation) ───────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS incidents (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    severity TEXT NOT NULL DEFAULT 'medium',
+                    status TEXT NOT NULL DEFAULT 'open',
+                    affected_site_ids_json TEXT,
+                    correlation_window_start TIMESTAMP,
+                    correlation_window_end TIMESTAMP,
+                    probable_shared_cause TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    resolved_at TIMESTAMP,
+                    resolved_by TEXT,
+                    FOREIGN KEY(resolved_by) REFERENCES users(id)
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS incident_notes (
+                    id TEXT PRIMARY KEY,
+                    incident_id TEXT NOT NULL,
+                    user_id TEXT,
+                    note TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(incident_id) REFERENCES incidents(id),
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            """)
+
+            # ── Alert Config ──────────────────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS alert_config (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    recipient_email TEXT,
+                    smtp_host TEXT,
+                    smtp_port INTEGER DEFAULT 587,
+                    smtp_user TEXT,
+                    smtp_password TEXT,
+                    enabled INTEGER DEFAULT 0,
+                    min_severity TEXT DEFAULT 'medium',
+                    cooldown_minutes INTEGER DEFAULT 30,
+                    alert_on_failure INTEGER DEFAULT 1,
+                    consecutive_failures_threshold INTEGER DEFAULT 2,
+                    alert_on_anomaly INTEGER DEFAULT 1,
+                    alert_on_incident INTEGER DEFAULT 1,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            # Seed default alert config row if missing
+            cursor.execute("SELECT COUNT(*) FROM alert_config")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("INSERT INTO alert_config (id) VALUES (1)")
+
+            # ── Alert Log ─────────────────────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS alert_log (
+                    id TEXT PRIMARY KEY,
+                    site_id TEXT,
+                    incident_id TEXT,
+                    alert_type TEXT NOT NULL,
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    recipient_email TEXT,
+                    status TEXT DEFAULT 'sent'
+                )
+            """)
+
+            # ── Chat Messages ─────────────────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    user_id TEXT,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    query_type TEXT,
+                    sources_json TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             conn.commit()
             conn.close()
             self.available = True
