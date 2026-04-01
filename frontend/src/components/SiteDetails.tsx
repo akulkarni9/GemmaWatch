@@ -34,6 +34,7 @@ interface MonitoringResult {
 
 interface SiteDetailsProps {
   selectedResult: MonitoringResult | null;
+  isLoading?: boolean;
   onViewScreenshot: (url: string) => void;
   onViewConsoleLogs: (logs: any[]) => void;
   onViewNetworkErrors: (errors: any[]) => void;
@@ -41,6 +42,7 @@ interface SiteDetailsProps {
 
 const SiteDetails: React.FC<SiteDetailsProps> = ({
   selectedResult,
+  isLoading = false,
   onViewScreenshot,
   onViewConsoleLogs,
   onViewNetworkErrors,
@@ -49,8 +51,20 @@ const SiteDetails: React.FC<SiteDetailsProps> = ({
     return (
       <div className="bg-white/5 backdrop-blur rounded-xl p-8 border border-white/10 h-full flex items-center justify-center">
         <div className="text-center text-gray-400">
-          <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Select a site to view detailed results</p>
+          {isLoading ? (
+            <>
+              <div className="relative w-12 h-12 mx-auto mb-4">
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-t-indigo-400 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              </div>
+              <p className="text-xs text-gray-500 uppercase tracking-widest font-bold animate-pulse">Loading results...</p>
+            </>
+          ) : (
+            <>
+              <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Select a site to view detailed results</p>
+            </>
+          )}
         </div>
       </div>
     );

@@ -478,7 +478,7 @@ class SQLiteService:
                 """SELECT c.id, c.status, c.timestamp, c.screenshot_url, c.status_code, 
                           c.console_log_count, c.network_error_count,
                           c.console_logs_json, c.network_errors_json,
-                          r.probable_cause, r.confidence, r.repair_action
+                          r.probable_cause, r.confidence, r.repair_action, r.repair_steps_json
                    FROM checks c
                    LEFT JOIN root_causes r ON c.id = r.check_id
                    WHERE c.site_id = ? 
@@ -509,24 +509,47 @@ class SQLiteService:
                 }
                 # Add RCA if available
                 if r[9] is not None:  # probable_cause
-                    rca_data = {
+                    repair_steps = None
+                    if r[12]:  # repair_steps_json
+                        try:
+                            repair_steps = json.loads(r[12])
+                        except:
+                            repair_steps = None
+                    check_data["rca"] = {
                         "probable_cause": r[9],
                         "confidence": r[10] or 0,
                         "repair_action": r[11] or "",
-                        "category": "Unknown"
+                        "category": "Unknown",
+                        "repair_steps": repair_steps,
                     }
-                    
-                    # Fetch structured repair steps if available
-                    cursor2 = conn.cursor()
-                    cursor2.execute("SELECT repair_steps_json FROM root_causes WHERE check_id = ?", (r[0],))
-                    rc_row = cursor2.fetchone()
-                    if rc_row and rc_row[0]:
-                        try:
-                            rca_data["repair_steps"] = json.loads(rc_row[0])
-                        except:
-                            rca_data["repair_steps"] = None
-                    
-                    check_data["rca"] = rca_data
+
+                # Attach fingerprints for this check
+                try:
+                    fp_conn = sqlite3.connect(DB_PATH)
+                    fp_cursor = fp_conn.cursor()
+                    fp_cursor.execute(
+                        """SELECT f.id, f.type, f.title, f.description, f.severity
+                           FROM error_fingerprints f
+                           JOIN check_fingerprints cf ON f.id = cf.fingerprint_id
+                           WHERE cf.check_id = ?""",
+                        (r[0],)
+                    )
+                    fp_rows = fp_cursor.fetchall()
+                    fp_conn.close()
+                    check_data["fingerprints"] = [
+                        {
+                            "id": fp[0],
+                            "fingerprint_hash": fp[0],
+                            "error_type": fp[1],
+                            "title": fp[2] or "Unnamed Pattern",
+                            "description": fp[3] or "",
+                            "severity": fp[4] or "low",
+                        }
+                        for fp in fp_rows
+                    ]
+                except Exception as fp_err:
+                    print(f"WARN: Could not fetch fingerprints for check {r[0]}: {fp_err}")
+                    check_data["fingerprints"] = []
                 results.append(check_data)
             return results
         except Exception as e:

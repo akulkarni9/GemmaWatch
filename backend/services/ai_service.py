@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
-MODEL_NAME = os.getenv("MODEL_NAME", "gemma:latest")
+MODEL_NAME = os.getenv("MODEL_NAME", "gemma3:12b")
 
 
 class AIService:
@@ -171,7 +171,7 @@ Return ONLY valid JSON:
         try:
             headers = {"Content-Type": "application/json"}
             payload = {
-                "model": "gemma:latest",
+                "model": "gemma3:12b",
                 "prompt": prompt,
                 "stream": False,
                 "format": "json"

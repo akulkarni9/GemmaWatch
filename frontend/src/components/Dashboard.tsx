@@ -75,6 +75,7 @@ const Dashboard: React.FC = () => {
   const [metricsData, setMetricsData] = useState<any[]>([]);
   const [uptimeData, setUptimeData] = useState<{ uptime_percentage: number; days: number } | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCheckType, setFilterCheckType] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState('');
@@ -83,6 +84,7 @@ const Dashboard: React.FC = () => {
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<any>(null);
+  const fingerprintPollRef = useRef<any>(null);
 
   // Filter sites based on search query and check type
   const filteredSites = sites.filter((site) => {
@@ -113,6 +115,15 @@ const Dashboard: React.FC = () => {
       result.url.toLowerCase().includes(searchResults.toLowerCase());
     return matchesSearch;
   });
+
+  // True when the selected site has fingerprints still awaiting Gemma's analysis
+  const hasPendingFingerprints = results.some(r =>
+    r.site_id === selectedSiteId &&
+    Array.isArray(r.fingerprints) &&
+    r.fingerprints.some(
+      (fp: any) => !fp.title || fp.title === 'Unnamed Pattern' || fp.title === ''
+    )
+  );
 
 
   // WebSocket connection with reconnection logic
@@ -271,7 +282,9 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchHistoricalResults = async () => {
       if (!selectedSiteId) return;
-      
+      // Clear stale results immediately so old site's data doesn't flash
+      setResults([]);
+      setHistoryLoading(true);
       try {
         console.log('📊 Loading historical results for site:', selectedSiteId);
         const res = await fetch(`${API_BASE}/sites/${selectedSiteId}/history?limit=50`);
@@ -294,9 +307,10 @@ const Dashboard: React.FC = () => {
               screenshot: check.screenshot || '',
               console_log_count: check.console_log_count || 0,
               network_error_count: check.network_error_count || 0,
-              console_logs: check.console_logs || [],  // Use stored logs from DB
-              network_errors: check.network_errors || [], // Use stored errors from DB
-              rca: check.rca || null,  // RCA if available
+              console_logs: check.console_logs || [],
+              network_errors: check.network_errors || [],
+              rca: check.rca || null,
+              fingerprints: check.fingerprints || [],  // ← was missing, dropped fingerprint data
             }));
             
             // Merge with existing results, preferring WebSocket updates
@@ -312,11 +326,51 @@ const Dashboard: React.FC = () => {
         }
       } catch (e) {
         console.error('Failed to load historical results:', e);
+      } finally {
+        setHistoryLoading(false);
       }
     };
 
     fetchHistoricalResults();
   }, [selectedSiteId, sites]);
+
+  // Auto-poll fingerprint metadata until all patterns are named
+  useEffect(() => {
+    // Clear any existing poll when site or pending state changes
+    if (fingerprintPollRef.current) {
+      clearInterval(fingerprintPollRef.current);
+      fingerprintPollRef.current = null;
+    }
+
+    if (!selectedSiteId || !hasPendingFingerprints) return;
+
+    fingerprintPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/sites/${selectedSiteId}/history?limit=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.history || !Array.isArray(data.history)) return;
+
+        // Only patch the fingerprints field on existing results — don't reset the list
+        setResults(prev =>
+          prev.map(r => {
+            const updated = data.history.find((h: any) => h.id === r.check_id);
+            if (!updated || !updated.fingerprints) return r;
+            return { ...r, fingerprints: updated.fingerprints };
+          })
+        );
+      } catch (e) {
+        console.error('Fingerprint poll error:', e);
+      }
+    }, 10_000);
+
+    return () => {
+      if (fingerprintPollRef.current) {
+        clearInterval(fingerprintPollRef.current);
+        fingerprintPollRef.current = null;
+      }
+    };
+  }, [selectedSiteId, hasPendingFingerprints]);
 
   // Stats
   const totalChecks = results.length;
@@ -541,6 +595,7 @@ const Dashboard: React.FC = () => {
                 const selectedResult = results.find(r => r.site_id === selectedSiteId);
                 return <SiteDetails 
                   selectedResult={selectedResult || null}
+                  isLoading={historyLoading}
                   onViewScreenshot={(url) => setScreenshotModal(url)}
                   onViewConsoleLogs={(logs) => setConsoleLogsModal(logs)}
                   onViewNetworkErrors={(errors) => setNetworkErrorsModal(errors)}
@@ -551,10 +606,22 @@ const Dashboard: React.FC = () => {
 
           {results.length === 0 && (
             <div className="bg-white/5 backdrop-blur-md rounded-2xl p-12 border border-white/10 text-center">
-              <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Activity className="w-6 h-6 text-blue-400" />
-              </div>
-              <p className="text-gray-500">No check results yet. Add a site and trigger the agent!</p>
+              {historyLoading ? (
+                <>
+                  <div className="relative w-10 h-10 mx-auto mb-4">
+                    <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
+                    <div className="absolute inset-0 rounded-full border-2 border-t-indigo-400 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                  </div>
+                  <p className="text-xs text-gray-500 uppercase tracking-widest font-bold animate-pulse">Loading results...</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Activity className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <p className="text-gray-500">No check results yet. Add a site and trigger the agent!</p>
+                </>
+              )}
             </div>
           )}
 
@@ -583,7 +650,18 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {results.length > 0 && (() => {
+          {/* History Loading Spinner */}
+          {historyLoading && (
+            <div className="flex flex-col items-center justify-center gap-4 py-12">
+              <div className="relative w-10 h-10">
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-t-indigo-400 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              </div>
+              <p className="text-xs text-gray-500 uppercase tracking-widest font-bold animate-pulse">Loading results...</p>
+            </div>
+          )}
+
+          {!historyLoading && results.length > 0 && (() => {
             // Filter results by selected site and search query
             const siteFilteredResults = selectedSiteId 
               ? filteredResults.filter(r => r.site_id === selectedSiteId)
@@ -592,7 +670,7 @@ const Dashboard: React.FC = () => {
             if (siteFilteredResults.length === 0) {
               return (
                 <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-                  <p className="text-gray-500">{selectedSiteId ? 'No results for selected site.' : 'No results match your search.'}</p>
+                  <p className="text-gray-500">{selectedSiteId ? 'No historical results for selected site.' : 'No results match your search.'}</p>
                 </div>
               );
             }
