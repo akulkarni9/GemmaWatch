@@ -68,38 +68,7 @@ To verify site matching:
 
 ## 🛠️ Architecture 2.1
 
-```
-GemmaWatch/
-├── backend/
-│   ├── main.py              # All API routes, WebSocket, auth, startup/shutdown
-│   ├── services/
-│   │   ├── ai_service.py        # Gemma RCA, visual analysis, fingerprint metadata
-│   │   ├── scraper.py           # Playwright browser automation
-│   │   ├── sqlite_service.py    # All database operations (CRUD + fingerprints)
-│   │   ├── check_types.py       # HTTP/API/DNS/TCP check executors
-│   │   ├── fingerprint_service.py # Error normalization, SHA-256 hashing, DB upsert
-│   │   ├── scheduler_service.py # Autonomous background check dispatch
-│   │   ├── anomaly_service.py   # Z-score detection + Gemma interpretation
-│   │   ├── correlation_service.py # Cross-site Incident creation
-│   │   ├── alert_service.py     # Email on failures / anomalies / incidents
-│   │   ├── chat_service.py      # Three-way routing & Analyst persona
-│   │   ├── catalogue_service.py # sqlite-vec RAG & HITL pipeline
-│   │   ├── embedding_service.py # Nomic-embed integration
-│   │   └── auth_service.py      # OAuth & JWT logic
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Dashboard.tsx            # Main feed + FingerprintBadge
-│   │   │   ├── SiteDetails.tsx          # Detail modal: RCA + Repair + Fingerprints
-│   │   │   ├── ErrorFingerprintPanel.tsx # Renders grouped error patterns
-│   │   │   ├── RepairPipeline.tsx       # Step-by-step repair wizard
-│   │   │   ├── catalogue/               # HITL Approval Dashboard
-│   │   │   ├── chat/                    # High-Precision Chat Interface
-│   │   │   ├── auth/                    # OAuth Login system
-│   │   │   ├── incidents/               # Incident management UI
-│   │   │   ├── settings/                # Alert configuration UI
-│   │   │   └── layout/                  # App shell and navigation
-```
+![Architecture Diagram](./architecture.png)
 
 ## 🧪 Testing
 

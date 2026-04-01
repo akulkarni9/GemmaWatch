@@ -107,15 +107,26 @@ class FingerprintService:
         if fid in self._title_cache:
             return
 
-        # Simple check if title exists (could be expanded to check DB)
-        # For now, let AI service handle the prompt logic
-        metadata = await self.ai.generate_fingerprint_metadata(pattern)
-        if metadata:
-            await self.db.upsert_fingerprint(
-                fid, ftype, pattern, 
-                title=metadata.get("title"), 
-                description=metadata.get("description")
-            )
-            self._title_cache[fid] = metadata.get("title")
+        # Double-check DB before AI call to avoid redundant processing
+        # Use simple get_fingerprint check
+        existing = await self.db.get_fingerprint(fid)
+        if existing and existing.get("title"):
+            self._title_cache[fid] = existing["title"]
+            return
+
+        try:
+            metadata = await self.ai.generate_fingerprint_metadata(pattern)
+            if metadata:
+                await self.db.upsert_fingerprint(
+                    fid, ftype, pattern, 
+                    title=metadata.get("title"), 
+                    description=metadata.get("description")
+                )
+                self._title_cache[fid] = metadata.get("title")
+                print(f"DEBUG: Successfully generated AI metadata for fingerprint {fid}")
+            else:
+                print(f"DEBUG: AI Fingerprint generation returned no result for {fid}")
+        except Exception as e:
+            print(f"ERROR: AI Fingerprint generation failed for {fid}: {e}")
 
 fingerprint_service = None # To be initialized in main.py

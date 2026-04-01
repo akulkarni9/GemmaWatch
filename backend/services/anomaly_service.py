@@ -111,7 +111,7 @@ async def run_stage1(site_id: str, check_id: str, response_time_ms: float,
         return None
 
 
-async def run_stage2(site_id: str, check_id: str, anomaly: dict, site_name: str) -> str:
+async def run_stage2(site_id: str, check_id: str, anomaly: dict, site_name: str, screenshot_path: str = None) -> str:
     """
     Gemma interprets the statistical anomaly. Returns interpretation text.
     Also writes to anomaly_events and optionally queues for HITL.
@@ -123,7 +123,16 @@ async def run_stage2(site_id: str, check_id: str, anomaly: dict, site_name: str)
     severity = anomaly.get("severity", "low")
 
     # Build a concise prompt for Gemma
+    visual_context = ""
+    images = []
+    if screenshot_path:
+        encoded = ai_service._encode_image(screenshot_path)
+        if encoded:
+            images.append(encoded)
+            visual_context = "I have uploaded a screenshot of the site during this anomaly for your visual context."
+
     prompt = f"""You are an infrastructure monitoring AI. A statistical anomaly was detected.
+{visual_context}
 
 Site: {site_name}
 Metric: {metric_type}
@@ -136,7 +145,7 @@ In 2-3 sentences, explain what this likely means and suggest one concrete action
 Respond as JSON: {{"interpretation": "...", "suggested_action": "...", "confidence": 0.0-1.0}}"""
 
     try:
-        raw = await ai_service._call_ollama(prompt)
+        raw = await ai_service._call_ollama(prompt, images=images)
         parsed = _parse_gemma_json(raw)
         interpretation = parsed.get("interpretation", raw[:200] if raw else "Anomaly detected")
         confidence = float(parsed.get("confidence", 0.6))

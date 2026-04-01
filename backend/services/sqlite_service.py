@@ -432,6 +432,21 @@ class SQLiteService:
         except Exception as e:
             print(f"ERROR: Failed to link fingerprint: {e}")
 
+    async def get_fingerprint(self, fid):
+        if not self.available:
+            return None
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM error_fingerprints WHERE id = ?", (fid,))
+            row = cursor.fetchone()
+            conn.close()
+            return dict(row) if row else None
+        except Exception as e:
+            print(f"ERROR: Failed to get fingerprint {fid}: {e}")
+            return None
+
     async def get_check_fingerprints(self, check_id):
         if not self.available:
             return []

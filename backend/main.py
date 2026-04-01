@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, Request, Response, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse
 import uvicorn
 import json
 import os
@@ -126,6 +126,8 @@ async def run_monitoring_task(url: str, name: str, site_id: str, check_type: str
     response_time_ms = 0.0
     dom_elements = 0
     final_status = "SUCCESS"
+    screenshot_path = None
+    screenshot_url = ""
 
     if check_type.lower() == "http":
         result = await scraper_service.run_check(url, site_id)
@@ -155,7 +157,12 @@ async def run_monitoring_task(url: str, name: str, site_id: str, check_type: str
             baseline_dom = baselines[site_id]
             if current_dom != baseline_dom:
                 await manager.broadcast({"type": "status", "msg": "🔬 UI Change detected. Analyzing with Gemma...", "check_id": check_id})
-                visual_analysis = await ai_service.analyze_visual_change(baseline_dom, current_dom)
+                visual_analysis = await ai_service.analyze_visual_change(
+                    baseline_dom, 
+                    current_dom, 
+                    baseline_path=result.get("baseline"), 
+                    current_path=result.get("screenshot")
+                )
                 if isinstance(visual_analysis, str):
                     try:
                         visual_analysis = json.loads(visual_analysis)
@@ -170,7 +177,13 @@ async def run_monitoring_task(url: str, name: str, site_id: str, check_type: str
             if network_errors:
                 error_context += f" | {len(network_errors)} network failure(s)"
             await manager.broadcast({"type": "status", "msg": f"🧠 Analyzing failure with Gemma ({error_context})...", "check_id": check_id})
-            rca = await ai_service.analyze_failure(current_dom, console_logs, network_errors, error_context)
+            rca = await ai_service.analyze_failure(
+                current_dom, 
+                console_logs, 
+                network_errors, 
+                error_context, 
+                screenshot_path=result.get("screenshot")
+            )
             if isinstance(rca, str):
                 try:
                     rca = json.loads(rca)
@@ -261,18 +274,18 @@ async def run_monitoring_task(url: str, name: str, site_id: str, check_type: str
             await manager.broadcast({"type": "error", "msg": f"Error executing {check_type} check: {str(e)}", "check_id": check_id})
 
     # ── Post-check intelligence pipeline ──────────────────────────────────────
-    asyncio.create_task(_post_check_pipeline(site_id, check_id, name, final_status, response_time_ms, dom_elements))
+    asyncio.create_task(_post_check_pipeline(site_id, check_id, name, final_status, response_time_ms, dom_elements, screenshot_path))
 
 
 async def _post_check_pipeline(site_id: str, check_id: str, site_name: str,
-                                final_status: str, response_time_ms: float, dom_elements: int):
+                                final_status: str, response_time_ms: float, dom_elements: int, screenshot_path: str = None):
     """Runs anomaly detection, correlation, and alerting after every check."""
     try:
         # Stage 1: Statistical anomaly detection
         anomaly = await anomaly_service.run_stage1(site_id, check_id, response_time_ms, dom_elements, final_status)
         if anomaly:
             # Stage 2: Gemma interpretation (async, non-blocking)
-            interpretation = await anomaly_service.run_stage2(site_id, check_id, anomaly, site_name)
+            interpretation = await anomaly_service.run_stage2(site_id, check_id, anomaly, site_name, screenshot_path=screenshot_path)
             # Alert on anomaly
             asyncio.create_task(alert_service.alert_anomaly(
                 site_id, site_name, interpretation, anomaly.get("severity", "low")
@@ -567,19 +580,8 @@ async def test_alert(body: dict, user: dict = Depends(require_admin)):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── Chat routes ───────────────────────────────────────────────────────────────
+# ── Chat routes moved to chat_main.py (Microservice) ─────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
-@app.post("/chat", tags=["chat"])
-async def chat_query(body: dict, user: dict = Depends(get_current_user)):
-    query = body.get("query", "").strip()
-    session_id = body.get("session_id", str(uuid.uuid4()))
-    result = await chat_service.chat(query, session_id, user.get("sub"))
-    return {**result, "session_id": session_id}
-
-
-@app.get("/chat/history/{session_id}", tags=["chat"])
-async def get_chat_history(session_id: str, user: dict = Depends(get_current_user)):
-    return {"messages": chat_service.get_chat_history(session_id)}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

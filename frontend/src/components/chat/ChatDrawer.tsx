@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  X, Send, Bot, User, 
-  Loader2, Sparkles
+import {
+  X, Send, Bot, User,
+  Loader2, Sparkles, Database, ChevronRight, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,15 +14,89 @@ interface Message {
   created_at?: string;
 }
 
-const API_BASE_URL = 'http://localhost:8002';
+const API_BASE_URL = 'http://localhost:8003';
 
 interface ChatDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const renderMessageContent = (content: string, isStreaming: boolean) => {
+  const systemLogs: string[] = [];
+  let remainingText = content;
+  
+  // Extract all [SYSTEM] status updates
+  const systemLogRegex = /\[SYSTEM\]\s*(.*?)(?=\n\n|\n\[|$)/gs;
+  let match;
+  while ((match = systemLogRegex.exec(content)) !== null) {
+      const log = match[1].trim();
+      if (!log.toLowerCase().includes('executing query')) {
+         systemLogs.push(log);
+      }
+  }
+
+  // Remove [SYSTEM] boxes from the natural conversational text
+  remainingText = remainingText.replace(/\[SYSTEM\]\s*.*?(?=\n\n|\n\[|$)/gs, '').trim();
+
+  // Extract Markdown SQL block
+  const sqlMatch = content.match(/```sql\n([\s\S]*?)\n```/);
+  let rawSql = '';
+  if (sqlMatch) {
+     rawSql = sqlMatch[1].trim();
+     remainingText = remainingText.replace(/```sql\n[\s\S]*?\n```/g, '').trim();
+  }
+
+  return (
+    <div className="flex flex-col gap-3 w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+      
+      {/* Reasoning / Tool Stepper */}
+      {systemLogs.length > 0 && (
+        <div className="flex flex-col gap-2 mb-1 px-1">
+          {systemLogs.map((log, i) => {
+             const isLastLog = i === systemLogs.length - 1;
+             const inProgress = isStreaming && isLastLog;
+             return (
+               <div key={i} className="flex items-center gap-2.5 text-xs font-medium text-slate-400/90">
+                  {inProgress ? (
+                    <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/80" />
+                  )}
+                  <span className={inProgress ? 'text-slate-300' : 'text-slate-500'}>{log}</span>
+               </div>
+             );
+          })}
+        </div>
+      )}
+      
+      {/* Gemma Output */}
+      {remainingText && (
+         <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200 font-normal">
+            {remainingText}
+         </div>
+      )}
+
+      {/* SQL Observability Dropdown */}
+      {rawSql && (
+        <details className="group cursor-pointer mt-2 border border-blue-500/10 bg-blue-950/20 rounded-xl overflow-hidden transition-all hover:border-blue-500/30 shadow-sm">
+          <summary className="text-xs font-semibold text-blue-400 p-3 outline-none select-none flex items-center justify-between">
+            <div className="flex items-center gap-2">
+               <Database className="w-3.5 h-3.5 opacity-80" />
+               <span>Database Query Extracted</span>
+            </div>
+            <ChevronRight className="w-4 h-4 opacity-50 group-open:rotate-90 transition-transform" />
+          </summary>
+          <div className="p-4 bg-black/60 overflow-x-auto text-[11px] sm:text-xs font-mono tracking-wide text-blue-200/90 border-t border-blue-500/10 shadow-inner">
+            {rawSql}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+};
+
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
-  const {  } = useAuth();
+  const { } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,21 +119,49 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      const response = await fetch(`${API_BASE_URL}/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: input, session_id: sessionId }),
         credentials: 'include'
       });
-      const data = await response.json();
-      
-      const assistantMsg: Message = { 
-        role: 'assistant', 
-        content: data.answer, 
-        query_type: data.query_type,
-        sources: data.sources
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+
+      if (!response.ok) throw new Error('Network response was not ok');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let isFirstChunk = true;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+
+          if (isFirstChunk) {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: chunk,
+              query_type: 'structured'
+            }]);
+            isFirstChunk = false;
+          } else {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const lastIndex = newMessages.length - 1;
+              const lastMessage = newMessages[lastIndex];
+              if (lastMessage && lastMessage.role === 'assistant') {
+                newMessages[lastIndex] = {
+                  ...lastMessage,
+                  content: lastMessage.content + chunk
+                };
+              }
+              return newMessages;
+            });
+          }
+        }
+      }
     } catch (err) {
       console.error('Chat failed:', err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'I encountered an error connecting to the intelligence engine. Please try again later.' }]);
@@ -73,16 +175,16 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
           />
-          
+
           {/* Drawer */}
-          <motion.div 
+          <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -100,7 +202,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Scoped Intelligence Engine</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors"
               >
@@ -109,7 +211,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Messages Area */}
-            <div 
+            <div
               ref={scrollRef}
               className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10"
             >
@@ -120,7 +222,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
                   </div>
                   <h4 className="text-white font-bold mb-2">How can I help you today?</h4>
                   <p className="text-slate-500 text-sm mb-8">Ask about system performance, recent incidents, or specific site root causes.</p>
-                  
+
                   <div className="grid gap-3 w-full">
                     {[
                       "Summarize incidents in the last 24h",
@@ -128,7 +230,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
                       "What are the most common repair actions?",
                       "Are there any anomalous patterns right now?"
                     ].map((q, i) => (
-                      <button 
+                      <button
                         key={i}
                         onClick={() => setInput(q)}
                         className="p-3 bg-white/5 border border-white/10 rounded-xl text-left text-xs text-slate-400 hover:border-blue-500/30 hover:text-white transition-all"
@@ -141,23 +243,23 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
               )}
 
               {messages.map((msg, idx) => (
-                <div 
+                <div
                   key={idx}
                   className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    msg.role === 'user' ? 'bg-blue-600' : 'bg-white/10'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-blue-600' : 'bg-white/10'
+                    }`}>
                     {msg.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-blue-400" />}
                   </div>
-                  
+
                   <div className={`max-w-[85%] space-y-2`}>
-                    <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                      msg.role === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none' 
-                        : 'bg-white/5 text-slate-200 border border-white/10 rounded-tl-none'
-                    }`}>
-                      {msg.content}
+                    <div className={`p-4 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-900/20'
+                        : 'bg-white/[0.03] text-slate-200 border border-white/5 rounded-tl-none shadow-md'
+                      }`}>
+                      {msg.role === 'assistant' 
+                        ? renderMessageContent(msg.content, loading && idx === messages.length - 1) 
+                        : <div className="whitespace-pre-wrap">{msg.content}</div>}
                     </div>
 
                     {msg.role === 'assistant' && msg.query_type && (
@@ -178,7 +280,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               ))}
 
-              {loading && (
+              {loading && !messages.some(m => m.role === 'assistant' && m.content) && (
                 <div className="flex gap-4">
                   <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
@@ -191,12 +293,12 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Input Area */}
-            <form 
+            <form
               onSubmit={handleSend}
               className="p-6 bg-white/[0.02] border-t border-white/10"
             >
               <div className="relative group">
-                <input 
+                <input
                   type="text"
                   value={input}
                   onChange={e => setInput(e.target.value)}
@@ -204,7 +306,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose }) => {
                   disabled={loading}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 pr-14 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all focus:ring-4 focus:ring-blue-500/5"
                 />
-                <button 
+                <button
                   type="submit"
                   disabled={!input.trim() || loading}
                   className="absolute right-2 top-2 h-10 w-10 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl flex items-center justify-center transition-all shadow-lg shadow-blue-600/20 active:scale-95"

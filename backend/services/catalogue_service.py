@@ -33,10 +33,16 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def _ensure_vec_table(conn: sqlite3.Connection):
-    """Create the sqlite-vec virtual table if it doesn't exist."""
+    """Create the sqlite-vec virtual table and its UUID mapping table if they don't exist."""
     conn.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS catalogue_vec
         USING vec0(embedding float32[768])
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS catalogue_vec_map (
+            rowid INTEGER PRIMARY KEY AUTOINCREMENT, 
+            catalogue_id TEXT UNIQUE
+        )
     """)
     conn.commit()
 
