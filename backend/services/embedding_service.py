@@ -19,7 +19,7 @@ EMBEDDING_DIM = 768
 async def embed(text: str) -> Optional[bytes]:
     """
     Embed text using nomic-embed-text via Ollama.
-    Returns bytes (int8-quantized float32 vector) for sqlite-vec storage, or None on error.
+    Returns bytes (float32 vector) for sqlite-vec storage, or None on error.
     """
     text = text.strip()
     if not text:
@@ -42,24 +42,14 @@ async def embed(text: str) -> Optional[bytes]:
             if not floats or len(floats) != EMBEDDING_DIM:
                 print(f"WARNING: Unexpected embedding dim: {len(floats)}")
                 return None
-            quantized = _quantize_int8(floats)
-            _set_cached(cache_key, quantized)
-            return quantized
+            
+            # Convert to float32 bytes (3072 bytes for 768 dims)
+            blob = struct.pack(f"{len(floats)}f", *floats)
+            _set_cached(cache_key, blob)
+            return blob
     except Exception as e:
         print(f"ERROR: Embedding failed: {e}")
         return None
-
-
-def _quantize_int8(floats: list[float]) -> bytes:
-    """
-    Quantize float32 embeddings to int8 for 4x storage savings.
-    Maps the range [min, max] → [-127, 127].
-    """
-    min_val = min(floats)
-    max_val = max(floats)
-    scale = max(abs(min_val), abs(max_val)) or 1.0
-    ints = [max(-127, min(127, int(round(v / scale * 127)))) for v in floats]
-    return struct.pack(f"{len(ints)}b", *ints)
 
 
 def _hash_text(text: str) -> str:

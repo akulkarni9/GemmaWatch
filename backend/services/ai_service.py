@@ -1,6 +1,7 @@
 import httpx
 import os
 import json
+from typing import Dict
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -82,8 +83,16 @@ Return ONLY valid JSON:
 {{
   "probable_cause": "specific root cause with evidence",
   "confidence": 0.9,
-  "repair_action": "specific, actionable fix",
-  "category": "Frontend|Backend|Network|Database|Infrastructure"
+  "repair_action": "High-level summary of the fix",
+  "category": "Frontend|Backend|Network|Database|Infrastructure",
+  "repair_steps": [
+    {{
+      "id": "step_1",
+      "type": "investigate|command|verify",
+      "summary": "Short title of the step",
+      "content": "Detailed CLI command or manual instruction"
+    }}
+  ]
 }}"""
         
         result = await self._call_ollama(prompt, is_json=True)
@@ -142,6 +151,51 @@ Return ONLY valid JSON:
             except Exception as e:
                 print(f"DEBUG: Connection check failed: {str(e)}")
                 return False
+
+    async def generate_fingerprint_metadata(self, pattern: str) -> Dict[str, str]:
+        """Provides a human-readable title and description for a raw error pattern."""
+        prompt = f"""
+        Analyze this raw application error pattern and provide a concise, professional, and functional title and description.
+        The goal is to group similar technical failures under a single human-readable name.
+
+        Patterns of Error:
+        "{pattern}"
+
+        Respond in STRICTOR JSON format only:
+        {{
+            "title": "A short (3-6 words) technical name for this error (no conversational filler)",
+            "description": "A 1-sentence technical explanation of what is failing",
+            "severity": "Low|Medium|High"
+        }}
+        """
+        try:
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "model": "gemma:latest",
+                "prompt": prompt,
+                "stream": False,
+                "format": "json"
+            }
+            async with httpx.AsyncClient() as client:
+                response = await client.post(OLLAMA_URL, json=payload, headers=headers, timeout=60.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    metadata_raw = data.get("response", "")
+                    if isinstance(metadata_raw, str):
+                        try:
+                            # Cleanup and parse
+                            start_idx = metadata_raw.find('{')
+                            end_idx = metadata_raw.rfind('}') + 1
+                            if start_idx != -1 and end_idx > start_idx:
+                                return json.loads(metadata_raw[start_idx:end_idx])
+                            return json.loads(metadata_raw)
+                        except:
+                            return None
+                    return metadata_raw
+                return None
+        except Exception as e:
+            print(f"ERROR: AI Fingerprint generation failed: {e}")
+            return None
 
 
 ai_service = AIService()

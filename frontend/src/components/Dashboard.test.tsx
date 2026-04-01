@@ -4,6 +4,18 @@
 import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import Dashboard from './Dashboard';
 
+// Mock useAuth
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: '1', name: 'Test User', role: 'admin' },
+    isAdmin: true,
+    loading: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    checkAuth: vi.fn()
+  })
+}));
+
 // Mock matchMedia for window properties
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -56,14 +68,18 @@ describe('Dashboard Component - Rendering & Accessibility', () => {
   beforeEach(() => {
     MockWebSocket.reset();
     vi.clearAllMocks();
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ sites: [] })
+    });
   });
 
   it('renders correctly with main UI elements', async () => {
     const { container } = render(<Dashboard />);
 
-    expect(screen.getByText('GemmaWatch AI')).toBeInTheDocument();
+    expect(screen.getAllByText(/Registered Sites/i)[0]).toBeInTheDocument();
     expect(screen.getByText('Live Activity')).toBeInTheDocument();
-    expect(screen.getByText('Add Site')).toBeInTheDocument();
+    expect(screen.getByTitle('Add New Site')).toBeInTheDocument();
 
     // Verify the container renders without crashing
     expect(container).toBeInTheDocument();
@@ -72,8 +88,7 @@ describe('Dashboard Component - Rendering & Accessibility', () => {
   it('renders all main UI sections', () => {
     render(<Dashboard />);
     
-    expect(screen.getByText('GemmaWatch AI')).toBeInTheDocument();
-    expect(screen.getByText(/Monitored Sites/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Registered Sites/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/Live Activity/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Search sites/i)).toBeInTheDocument();
   });
@@ -81,7 +96,7 @@ describe('Dashboard Component - Rendering & Accessibility', () => {
   it('displays Add Site button and form toggle', async () => {
     render(<Dashboard />);
     
-    const addButton = screen.getByText('Add Site');
+    const addButton = screen.getByTitle('Add New Site');
     expect(addButton).toBeInTheDocument();
 
     fireEvent.click(addButton);
@@ -209,7 +224,7 @@ describe('Dashboard Component - WebSocket & Real-time Updates', () => {
     });
 
     // Component should not crash
-    expect(screen.getByText('GemmaWatch AI')).toBeInTheDocument();
+    expect(screen.getAllByText(/Registered Sites/i)[0]).toBeInTheDocument();
     
     consoleErrorSpy.mockRestore();
   });
@@ -429,7 +444,7 @@ describe('Dashboard Component - Edge Cases & Error Handling', () => {
       } as any);
     });
 
-    expect(screen.getByText('GemmaWatch AI')).toBeInTheDocument();
+    expect(screen.getAllByText(/Registered Sites/i)[0]).toBeInTheDocument();
     consoleErrorSpy.mockRestore();
   });
 

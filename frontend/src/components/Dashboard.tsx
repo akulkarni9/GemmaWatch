@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Activity, AlertTriangle, CheckCircle, Search, RefreshCw, Eye,
   Image as ImageIcon, Plus, Trash2, Globe, X, BarChart3, Wifi,
-  Lock
+  Lock, ChevronLeft, ChevronRight, ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MetricsChart from './MetricsChart';
 import UptimeDisplay from './UptimeDisplay';
 import ErrorDistribution from './ErrorDistribution';
 import SiteDetails from './SiteDetails';
+import RepairPipeline from './RepairPipeline';
 
 interface MonitoringResult {
   site_id: string;
@@ -36,6 +37,14 @@ interface MonitoringResult {
     change_summary: string;
     impact: string;
   };
+  fingerprints?: Array<{
+    id: string;
+    fingerprint_hash: string;
+    title: string;
+    description: string;
+    severity: string;
+    error_type: string;
+  }>;
 }
 
 interface Site {
@@ -69,6 +78,8 @@ const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCheckType, setFilterCheckType] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<any>(null);
@@ -83,6 +94,17 @@ const Dashboard: React.FC = () => {
     
     return matchesSearch && matchesFilter;
   });
+
+  // Reset pagination when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterCheckType]);
+
+  const totalPages = Math.ceil(filteredSites.length / PAGE_SIZE);
+  const paginatedSites = filteredSites.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   // Filter results based on search query
   const filteredResults = results.filter((result) => {
@@ -388,7 +410,7 @@ const Dashboard: React.FC = () => {
               {filteredSites.length === 0 && sites.length > 0 && (
                 <p className="text-gray-500 text-sm">No sites match your search.</p>
               )}
-              {filteredSites.map((site) => (
+              {paginatedSites.map((site) => (
                 <div 
                   key={site.id} 
                   onClick={() => setSelectedSiteId(site.id)}
@@ -431,6 +453,47 @@ const Dashboard: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPage(prev => Math.max(1, prev - 1));
+                  }}
+                  disabled={currentPage === 1}
+                  className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${
+                    currentPage === 1 
+                      ? 'text-white/20 cursor-not-allowed' 
+                      : 'text-indigo-400 hover:bg-indigo-500/10'
+                  }`}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  Prev
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Page <span className="text-indigo-400">{currentPage}</span> of {totalPages}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                  }}
+                  disabled={currentPage === totalPages}
+                  className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${
+                    currentPage === totalPages 
+                      ? 'text-white/20 cursor-not-allowed' 
+                      : 'text-indigo-400 hover:bg-indigo-500/10'
+                  }`}
+                >
+                  Next
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </section>
 
           {/* Live Activity Feed */}
@@ -539,7 +602,22 @@ const Dashboard: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-xl font-bold">{result.name}</h3>
-                  <p className="text-gray-500 text-xs mt-1">{new Date(result.timestamp).toLocaleString()}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-gray-500 text-xs">{new Date(result.timestamp).toLocaleString()}</p>
+                    {result.fingerprints && result.fingerprints.length > 0 && (
+                      <div className="flex gap-1.5 overflow-hidden max-w-[400px]">
+                        {result.fingerprints.slice(0, 2).map((fp) => (
+                          <span key={fp.id} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap">
+                            <ShieldAlert className="w-3 h-3" />
+                            {fp.title}
+                          </span>
+                        ))}
+                        {result.fingerprints.length > 2 && (
+                          <span className="text-[10px] text-slate-500 font-bold self-center">+{result.fingerprints.length - 2} more</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {result.status_code !== undefined && (
@@ -568,32 +646,27 @@ const Dashboard: React.FC = () => {
 
               {/* RCA Alert */}
               {result.rca && (
-                <div className="mb-4 p-4 bg-red-500/10 rounded-xl border border-red-500/20">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="mb-4 p-6 bg-red-500/10 rounded-2xl border border-red-500/20">
+                  <div className="flex items-center gap-2 mb-4">
                     <AlertTriangle className="w-4 h-4 text-red-400" />
-                    <span className="font-bold text-red-400 uppercase tracking-wider text-xs">Root Cause Analysis</span>
+                    <span className="font-bold text-red-400 uppercase tracking-widest text-[10px]">Root Cause Analysis</span>
                     {result.rca.confidence !== undefined && (
-                      <span className="ml-auto text-[10px] text-gray-400">{Math.round(result.rca.confidence * 100)}% confidence</span>
+                      <span className="ml-auto text-[10px] text-gray-500 font-bold">CONFIDENCE: {Math.round(result.rca.confidence * 100)}%</span>
                     )}
                   </div>
                   {result.rca.probable_cause && (
-                    <p className="text-sm text-gray-200 mb-3">{result.rca.probable_cause}</p>
+                    <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/5">
+                       <p className="text-sm text-gray-200 italic">"{result.rca.probable_cause}"</p>
+                    </div>
                   )}
-                  <div className="space-y-2">
-                    {result.rca.repair_action ? (
-                      <div className="p-3 bg-red-500/10 rounded border border-red-500/30">
-                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Suggested Fix:</p>
-                        <p className="text-sm text-red-300 break-words">{result.rca.repair_action}</p>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-yellow-500/10 rounded border border-yellow-500/30">
-                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Fix Recommendation:</p>
-                        <p className="text-sm text-yellow-300">No automated fix available. Review the probable cause and contact support if needed.</p>
-                      </div>
-                    )}
+                  <div className="space-y-4">
+                    <RepairPipeline 
+                      steps={(result.rca as any).repair_steps || []} 
+                      fallbackAction={result.rca.repair_action}
+                    />
                     {result.rca.category && (
-                      <div className="inline-block">
-                        <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded text-xs font-medium">{result.rca.category}</span>
+                      <div className="pt-2">
+                        <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">{result.rca.category}</span>
                       </div>
                     )}
                   </div>

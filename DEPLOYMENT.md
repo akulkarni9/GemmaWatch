@@ -1,14 +1,68 @@
-# GemmaWatch Deployment Guide
+# GemmaWatch Deployment Guide v2.0
 
-Complete guide for deploying GemmaWatch to production using Vercel (frontend) and Railway (backend).
+Comprehensive guide for deploying the High-Precision GemmaWatch platform to production.
 
-## Overview
+## 🚀 Overview
 
-- **Frontend**: Deployed to Vercel (free tier, auto-scaling)
-- **Backend**: Deployed to Railway using Docker (free tier: $5/month credit)
-- **Ollama**: Keep running locally or use external API
+- **Frontend**: Deployed to Vercel (Auto-scaling, Edge-optimized).
+- **Backend**: Deployed to Railway using Docker (Handles `sqlite-vec` extension).
+- **AI Intelligence**: Optimized for local `Ollama` or hosted LLM providers.
 
 ---
+
+## 📦 Deployment Prerequisites
+
+### sqlite-vec Extension (CRITICAL)
+GemmaWatch 2.0 relies on `sqlite-vec` for its high-precision RAG.
+- **Docker**: The provided `Dockerfile` must install `build-essential` and `tcl` to compile/load the extension if not using a pre-compiled binary.
+- **Railway**: Ensure the environment supports custom C-extensions for SQLite.
+
+---
+
+## 🔑 Railway Environment Variables
+
+In the Railway dashboard → Project → Variables, configure the following:
+
+```env
+# AI & Database
+OLLAMA_URL=https://your-hosted-ollama-api  # Or local tunnel
+MODEL_NAME=gemma:latest
+EMBED_MODEL=nomic-embed-text
+
+# Authentication (Mandatory for Production)
+AUTH_SECRET=your-32-character-secure-string
+GOOGLE_CLIENT_ID=your-google-id
+GOOGLE_CLIENT_SECRET=your-google-secret
+GITHUB_CLIENT_ID=your-github-id
+GITHUB_CLIENT_SECRET=your-github-secret
+
+# Frontend Configuration
+FRONTEND_BASE_URL=https://your-gemmawatch.vercel.app
+```
+
+---
+
+## 🤖 Production AI Considerations
+
+### Analyst Persona Grounding
+In production, ensure the `OLLAMA_URL` points to a stable endpoint. If the AI is unavailable:
+- **Monitoring**: Continues to function (HTTP/TCP/DNS).
+- **RCA**: Fails gracefully with a "Service Degraded" status.
+- **Chat**: Switches to a "Platform Info" system persona.
+
+### Intelligence Catalogue (HITL)
+The `/catalogue/pending` endpoint is restricted to **Admin** users. Ensure you have configured yourself as an admin in the `users` table after your first login.
+
+---
+
+## 🛠️ Deployment Checklist
+
+- [x] Configure OAuth Providers (Google/GitHub).
+- [x] Generate a secure `AUTH_SECRET`.
+- [x] Verify `sqlite-vec` loads correctly in the target environment.
+- [x] Deploy Backend to Railway (Docker).
+- [x] Deploy Frontend to Vercel (pointing to Railway URL).
+- [x] Run a test check and verify **Analyst Response**.
 
 ## Frontend Deployment (Vercel)
 

@@ -1,22 +1,149 @@
-# Development Guide
+# Development Guide v2.0
 
-Complete guide for developing and debugging GemmaWatch.
+Complete guide for developing, debugging, and extending the GemmaWatch High-Precision Intelligence platform.
 
-##  Quick Start
+## 🚀 Quick Start
 
 ```bash
 # Terminal 1: Ollama
 ollama serve
 
-# Terminal 2: Backend
+# Terminal 2: Backend (Ensure sqlite-vec is installed)
 cd backend && source venv/bin/activate && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
 
 # Terminal 3: Frontend
 cd frontend && npm run dev
+```
 
-# Terminal 4: Verification (after services start)
-curl http://localhost:8002/health
-open http://localhost:5173
+## 📦 System Requirements
+
+### sqlite-vec Extension
+GemmaWatch 2.0 requires the `sqlite_vec` extension for high-performance RAG.
+- **macOS (Homebrew)**: `brew install sqlite-vec`
+- **Python**: The `sqlite-vec` python package is included in `requirements.txt`.
+- **Validation**: Run `python -c "import sqlite_vec; print(sqlite_vec.loadable_path())"` to verify.
+
+## 🔑 Authentication Setup
+
+Create `backend/.env` with OAuth credentials:
+
+```env
+# AI & Database
+OLLAMA_URL=http://localhost:11434
+MODEL_NAME=gemma:latest
+EMBED_MODEL=nomic-embed-text
+
+# Authentication (JWT & OAuth)
+AUTH_SECRET=your-32-character-secret
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+
+# Frontend URL
+FRONTEND_BASE_URL=http://localhost:5175
+```
+
+## 🧠 Intelligence Layer Debugging
+
+### High-Precision Analyst Persona
+The chatbot uses a "Zero-Fluff" analyst persona. To test or refine the tone:
+1. Modify `backend/services/chat_service.py` -> `_system_query`.
+2. Ensure the prompt enforces `Tone: Concise, Data-Driven, Professional`.
+
+### Vector RAG Queries
+To debug the semantic search results:
+```bash
+# Direct SQL check for vector matches
+sqlite3 gemmawatch.db "SELECT rowid, distance FROM catalogue_vec WHERE embedding MATCH ? ORDER BY distance LIMIT 5;"
+```
+
+### Deterministic Entity Recognition
+To verify site matching:
+1. Add a site named "Production DB".
+2. Ask the bot "Tell me about Production DB".
+3. Check backend logs for `DEBUG: Entity Match Found: Production DB`.
+
+---
+
+## 🛠️ Architecture 2.1
+
+```
+GemmaWatch/
+├── backend/
+│   ├── main.py              # All API routes, WebSocket, auth, startup/shutdown
+│   ├── services/
+│   │   ├── ai_service.py        # Gemma RCA, visual analysis, fingerprint metadata
+│   │   ├── scraper.py           # Playwright browser automation
+│   │   ├── sqlite_service.py    # All database operations (CRUD + fingerprints)
+│   │   ├── check_types.py       # HTTP/API/DNS/TCP check executors
+│   │   ├── fingerprint_service.py # Error normalization, SHA-256 hashing, DB upsert
+│   │   ├── scheduler_service.py # Autonomous background check dispatch
+│   │   ├── anomaly_service.py   # Z-score detection + Gemma interpretation
+│   │   ├── correlation_service.py # Cross-site Incident creation
+│   │   ├── alert_service.py     # Email on failures / anomalies / incidents
+│   │   ├── chat_service.py      # Three-way routing & Analyst persona
+│   │   ├── catalogue_service.py # sqlite-vec RAG & HITL pipeline
+│   │   ├── embedding_service.py # Nomic-embed integration
+│   │   └── auth_service.py      # OAuth & JWT logic
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Dashboard.tsx            # Main feed + FingerprintBadge
+│   │   │   ├── SiteDetails.tsx          # Detail modal: RCA + Repair + Fingerprints
+│   │   │   ├── ErrorFingerprintPanel.tsx # Renders grouped error patterns
+│   │   │   ├── RepairPipeline.tsx       # Step-by-step repair wizard
+│   │   │   ├── catalogue/               # HITL Approval Dashboard
+│   │   │   ├── chat/                    # High-Precision Chat Interface
+│   │   │   ├── auth/                    # OAuth Login system
+│   │   │   ├── incidents/               # Incident management UI
+│   │   │   ├── settings/                # Alert configuration UI
+│   │   │   └── layout/                  # App shell and navigation
+```
+
+## 🧪 Testing
+
+### Intelligence Testing
+```bash
+# Test the RAG ingestion pipeline
+pytest backend/tests/test_catalogue_service.py
+
+# Test the Chat routing
+pytest backend/tests/test_chat_service.py
+
+# Run all backend tests
+pytest backend/tests/ -v
+```
+
+## 🔍 Debugging New Services
+
+### Error Fingerprinting
+```bash
+# View all discovered fingerprints in the DB
+sqlite3 backend/gemmawatch.db "SELECT id, type, title, total_occurrences, severity FROM error_fingerprints;"
+
+# Check which fingerprints are linked to checks
+sqlite3 backend/gemmawatch.db "SELECT cf.check_id, ef.title, ef.severity FROM check_fingerprints cf JOIN error_fingerprints ef ON cf.fingerprint_id = ef.id LIMIT 20;"
+```
+
+### Scheduler Service
+```bash
+# REST endpoint (requires admin token)
+curl -H "Cookie: access_token=<token>" http://localhost:8002/scheduler/status
+
+# Direct DB query
+sqlite3 backend/gemmawatch.db "SELECT name, frequency, last_checked_at, next_check_at FROM sites;"
+```
+
+### Alert Service
+```bash
+# Check sent alert log
+sqlite3 backend/gemmawatch.db "SELECT * FROM alert_log ORDER BY sent_at DESC LIMIT 10;"
+
+# Test sending an alert email via API
+curl -X POST http://localhost:8002/settings/alerts/test \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "you@example.com"}'
 ```
 
 ##  Project Structure
@@ -234,13 +361,16 @@ ps aux | grep uvicorn
 cd backend
 sqlite3 gemmawatch.db
 
-# View tables
+# View all tables (v2.1 has 12+)
 .tables
 
-# Schema of specific table
-.schema checks
+# Key v2.1 queries
+SELECT id, type, title, total_occurrences FROM error_fingerprints;
+SELECT id, title, severity, status FROM incidents WHERE status = 'open';
+SELECT * FROM anomaly_events ORDER BY created_at DESC LIMIT 10;
+SELECT * FROM alert_log ORDER BY sent_at DESC LIMIT 5;
 
-# Query data
+# General queries
 SELECT * FROM sites;
 SELECT COUNT(*) FROM checks;
 

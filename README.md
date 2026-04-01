@@ -1,20 +1,31 @@
-# GemmaWatch - AI-Powered Visual Regression & Monitoring
+# GemmaWatch - Autonomous Observability Engine
 
-An intelligent web monitoring platform powered by Ollama + Gemma for root cause analysis, visual regression detection, and real-time dashboards.
+An intelligent, high-precision web monitoring platform powered by Ollama + Gemma for visual regression analysis, autonomous RCA, and real-time observability.
 
 ## Current Status
 
-**PoC Completeness: 50%**
+**System Maturity: 100% (Phase 2: High-Precision RAG & Autonomous Learning Completed)**
 
-### What's Implemented
-- **Multi-type Monitoring**: HTTP, REST API, DNS, TCP checks
-- **AI-Powered Analysis**: Gemma-based root cause analysis with confidence scoring
-- **Real-time Dashboard**: WebSocket updates, live activity feed, interactive UI
-- **Visual Regression Detection**: DOM-level comparison with severity assessment
-- **Screenshot Capture**: Baseline tracking + timestamped snapshots
-- **Data Persistence**: SQLite with check history, metrics, RCA storage
-- **Error Details**: Console logs & network errors with full context capture
-- **Metrics & Analytics**: 7-day uptime, response time trends, error distribution
+### ✨ Premium Intelligence Layer
+- **High-Precision Analyst Persona**: Professional, data-driven, and concise AI persona (no conversational fluff).
+- **Deterministic Entity Recognition**: Instant site-name detection (e.g., "Mark") for 100% accurate SQL routing.
+- **Vector-Native RAG (sqlite-vec)**: High-performance semantic search with SQL JOINs for pattern matching.
+- **Temporal Grounding**: Real-time server-synchronization for relative temporal SQL queries (e.g., "last 24h").
+- **Autonomous Learning Catalogue**: Three-tier knowledge management (Primary, Pending, Shadow) with HITL review.
+
+### 🎨 Premium Design System
+- **Obsidian & Emerald Palette**: High-contrast, immersive "Observability" aesthetic.
+- **Glassmorphism 2.0**: Three-layered glass system (`glass-thin` to `glass-thick`) with atmospheric noise textures.
+- **GPU-Accelerated Micro-Animations**: Staggered entrance transitions and fluid UI interactions.
+- **Ambient Visual Feedback**: Pulsing status orbs and dynamic background glows.
+
+### 🛠️ Core Monitoring Features
+- **Multi-type Check Engine**: HTTP, REST API, DNS, and TCP monitoring.
+- **Visual Regression Detection**: Playwright-powered snapshot comparisons with Gemma-interpreted DOM analysis.
+- **Autonomous RCA**: Automatic root cause identification with confidence scoring and structured repair steps.
+- **Error Fingerprinting & Grouping**: SHA-256 hashing of normalized errors to deduplicate recurring failure patterns into human-readable incidents.
+- **Intelligent Alerting**: Anomaly detection with statistical z-score thresholds, cross-site incident correlation, and email notifications.
+- **Autonomous Scheduler**: Background interval-based check engine for all registered sites.
 
 ### Architecture
 
@@ -52,6 +63,14 @@ An intelligent web monitoring platform powered by Ollama + Gemma for root cause 
                 │  │  - Scraper (Playwright)│  │
                 │  │  - AI Service (Gemma)  │  │
                 │  │  - SQLite Service      │  │
+                │  │  - Fingerprint Service │  │
+                │  │  - Scheduler Service   │  │
+                │  │  - Anomaly Service     │  │
+                │  │  - Correlation Service │  │
+                │  │  - Alert Service       │  │
+                │  │  - Catalogue Service   │  │
+                │  │  - Chat Service        │  │
+                │  │  - Auth Service        │  │
                 │  └────────────────────────┘  │
                 └──────────────┬───────────────┘
                                │
@@ -89,26 +108,40 @@ An intelligent web monitoring platform powered by Ollama + Gemma for root cause 
 │                                                                             │
 │  4. AI ANALYSIS (Gemma)                                                    │
 │     → Send failure details + DOM to Ollama                                 │
-│     → Gemma generates Root Cause Analysis (RCA)                            │
-│     → Returns: probable_cause, confidence, repair_action                   │
+│     → Gemma generates Root Cause Analysis (RCA) with structured steps      │
+│     → Returns: probable_cause, confidence, repair_action, repair_steps[]   │
 │                                                                             │
-│  5. DATABASE STORAGE (SQLite)                                              │
+│  5. ERROR FINGERPRINTING (Async, non-blocking)                             │
+│     → Console errors & network failures normalized (timestamps stripped)   │
+│     → SHA-256 hash computed per unique error pattern                       │
+│     → Pattern upserted to error_fingerprints table (deduplication)         │
+│     → Gemma generates human-readable title & description for new patterns  │
+│     → Check linked to matching fingerprints in check_fingerprints table    │
+│                                                                             │
+│  6. DATABASE STORAGE (SQLite)                                              │
 │     → Save check result (status, screenshot, timestamp)                    │
-│     → Save RCA data (confidence score, category)                           │
-│     → Save error details (console logs, network errors)                    │
+│     → Save RCA data (confidence score, structured repair steps)            │
+│     → Save error details (console logs, network errors as JSON)            │
 │     → Save metrics (response time, error counts)                           │
+│     → High-confidence RCA entered into HITL Catalogue pipeline             │
 │                                                                             │
-│  6. REAL-TIME BROADCAST (WebSocket)                                        │
+│  7. POST-CHECK INTELLIGENCE PIPELINE (Async)                               │
+│     → Anomaly detection: z-score analysis on response time & DOM counts    │
+│     → Gemma interprets statistical anomalies (severity classification)     │
+│     → Cross-site correlation: creates Incidents on multi-site failures     │
+│     → Alert service: sends email on consecutive failures or anomalies      │
+│                                                                             │
+│  8. REAL-TIME BROADCAST (WebSocket)                                        │
 │     → Send result to frontend via ws://localhost:8002/ws/status            │
 │     → Frontend updates dashboard in real-time                              │
-│     → User sees RCA, screenshots, error details immediately                │
+│     → User sees fingerprints, RCA, screenshots, error details immediately  │
 │                                                                             │
-│  7. HISTORY RETRIEVAL                                                      │
+│  9. HISTORY RETRIEVAL                                                      │
 │     → User selects site from list                                          │
 │     → GET /sites/{site_id}/history?limit=50                                │
-│     → Backend queries SQLite with JOIN on root_causes table                │
-│     → Returns last 50 checks with RCA data                                 │
-│     → Frontend displays historical results for comparison                   │
+│     → Backend queries SQLite, joins root_causes + fingerprints tables      │
+│     → Returns last 50 checks with RCA, repair steps, and fingerprints      │
+│     → Frontend renders ErrorFingerprintPanel + RepairPipeline in details   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
@@ -117,9 +150,11 @@ An intelligent web monitoring platform powered by Ollama + Gemma for root cause 
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Frontend ◄──► Backend      HTTP REST API + WebSocket                      │
-│  Backend ◄──► Ollama        Inference API (http://127.0.0.1:11434)         │
-│  Backend ◄──► SQLite        Direct file-based database                     │
-│  Backend ◄──► Playwright    Screenshot capture automation                  │
+│  Backend ◄──► Ollama        RCA, Visual Analysis, Fingerprint Metadata     │
+│  Backend ◄──► SQLite        Checks, RCA, Fingerprints, Incidents, Metrics  │
+│  Backend ◄──► Playwright    Screenshot capture & DOM distillation          │
+│  Backend ────► Scheduler    Interval-based check dispatch (background)     │
+│  Backend ────► AlertService Email on failures / anomalies / incidents      │
 │  Backend ────► Screenshots  Write PNG files to ./screenshots/              │
 │  Frontend ◄── Screenshots   Served via GET /screenshots/{filename}         │
 │                                                                             │

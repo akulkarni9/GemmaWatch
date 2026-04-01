@@ -36,7 +36,7 @@ def _ensure_vec_table(conn: sqlite3.Connection):
     """Create the sqlite-vec virtual table if it doesn't exist."""
     conn.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS catalogue_vec
-        USING vec0(embedding int8[768])
+        USING vec0(embedding float32[768])
     """)
     conn.commit()
 

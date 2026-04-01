@@ -7,3 +7,5 @@ python-dotenv
 httpx
 pytest
 pytest-asyncio
+python-jose[cryptography]
+sqlite-vec

@@ -32,6 +32,7 @@ import services.anomaly_service as anomaly_service
 import services.correlation_service as correlation_service
 import services.alert_service as alert_service
 import services.chat_service as chat_service
+from services.fingerprint_service import FingerprintService
 
 # Configuration
 WS_TIMEOUT = 30.0
@@ -62,6 +63,7 @@ app.mount("/screenshots", StaticFiles(directory="screenshots"), name="screenshot
 
 # Initialize services
 db_service = SQLiteService()
+fingerprint_service = FingerprintService(db_service, ai_service)
 
 
 @app.on_event("startup")
@@ -201,9 +203,20 @@ async def run_monitoring_task(url: str, name: str, site_id: str, check_type: str
                                     dom_elements=dom_elements, console_errors=len(console_logs),
                                     network_failures=len(network_errors))
 
+        # Fingerprint errors
+        if console_logs or network_errors:
+            asyncio.create_task(fingerprint_service.process_check_errors(check_id, console_logs, network_errors))
+
         if rca and isinstance(rca, dict):
             confidence = float(rca.get("confidence", 0.5))
-            await db_service.create_root_cause(check_id, rca.get("probable_cause", ""), confidence, rca.get("repair_action", ""))
+            repair_steps = rca.get("repair_steps", [])
+            await db_service.create_root_cause(
+                check_id, 
+                rca.get("probable_cause", ""), 
+                confidence, 
+                rca.get("repair_action", ""),
+                repair_steps=repair_steps
+            )
             # HITL catalogue pipeline
             asyncio.create_task(catalogue_service.ingest(rca, check_id, confidence))
 

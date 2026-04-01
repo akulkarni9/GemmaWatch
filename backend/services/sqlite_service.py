@@ -68,9 +68,16 @@ class SQLiteService:
                     probable_cause TEXT,
                     confidence REAL,
                     repair_action TEXT,
+                    repair_steps_json TEXT, -- Added for structured repair pipeline
                     FOREIGN KEY(check_id) REFERENCES checks(id)
                 )
             """)
+            # Migration for existing root_causes
+            cursor.execute("PRAGMA table_info(root_causes)")
+            rc_cols = [col[1] for col in cursor.fetchall()]
+            if "repair_steps_json" not in rc_cols:
+                cursor.execute("ALTER TABLE root_causes ADD COLUMN repair_steps_json TEXT")
+                print("INFO: Added repair_steps_json column to root_causes table")
 
             # ── Metrics Table ─────────────────────────────────────────────────────
             cursor.execute("""
@@ -248,6 +255,32 @@ class SQLiteService:
                 )
             """)
 
+            # ── ErrorFingerprints Table ─────────────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS error_fingerprints (
+                    id TEXT PRIMARY KEY, -- SHA-256 hash
+                    type TEXT NOT NULL, -- 'console' | 'network'
+                    pattern TEXT NOT NULL,
+                    title TEXT,
+                    description TEXT,
+                    severity TEXT DEFAULT 'Medium',
+                    first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    total_occurrences INTEGER DEFAULT 1
+                )
+            """)
+
+            # ── CheckFingerprints Table (Join) ──────────────────────────────────
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS check_fingerprints (
+                    check_id TEXT NOT NULL,
+                    fingerprint_id TEXT NOT NULL,
+                    PRIMARY KEY(check_id, fingerprint_id),
+                    FOREIGN KEY(check_id) REFERENCES checks(id),
+                    FOREIGN KEY(fingerprint_id) REFERENCES error_fingerprints(id)
+                )
+            """)
+
             # ── Chat Messages ─────────────────────────────────────────────────────
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
@@ -347,21 +380,78 @@ class SQLiteService:
         except Exception as e:
             print(f"ERROR: Failed to create check: {e}")
     
-    async def create_root_cause(self, check_id, probable_cause, confidence, repair_action):
+    async def create_root_cause(self, check_id, probable_cause, confidence, repair_action, repair_steps=None):
+        if not self.available:
+            return
+        try:
+            import json
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            repair_steps_json = json.dumps(repair_steps) if repair_steps else None
+            cursor.execute(
+                """INSERT INTO root_causes (check_id, probable_cause, confidence, repair_action, repair_steps_json)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (check_id, probable_cause, confidence, repair_action, repair_steps_json)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"ERROR: Failed to create root cause: {e}")
+
+    async def upsert_fingerprint(self, fid, ftype, pattern, title=None, description=None):
         if not self.available:
             return
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute(
-                """INSERT INTO root_causes (check_id, probable_cause, confidence, repair_action)
-                   VALUES (?, ?, ?, ?)""",
-                (check_id, probable_cause, confidence, repair_action)
+                """INSERT INTO error_fingerprints (id, type, pattern, title, description)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET 
+                   last_seen = CURRENT_TIMESTAMP,
+                   total_occurrences = total_occurrences + 1""",
+                (fid, ftype, pattern, title, description)
             )
             conn.commit()
             conn.close()
         except Exception as e:
-            print(f"ERROR: Failed to create root cause: {e}")
+            print(f"ERROR: Failed to upsert fingerprint: {e}")
+
+    async def link_check_to_fingerprint(self, check_id, fingerprint_id):
+        if not self.available:
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR IGNORE INTO check_fingerprints (check_id, fingerprint_id) VALUES (?, ?)",
+                (check_id, fingerprint_id)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"ERROR: Failed to link fingerprint: {e}")
+
+    async def get_check_fingerprints(self, check_id):
+        if not self.available:
+            return []
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT f.* 
+                   FROM error_fingerprints f
+                   JOIN check_fingerprints cf ON f.id = cf.fingerprint_id
+                   WHERE cf.check_id = ?""",
+                (check_id,)
+            )
+            rows = cursor.fetchall()
+            conn.close()
+            return [dict(r) for r in rows]
+        except Exception as e:
+            print(f"ERROR: Failed to get fingerprints for check {check_id}: {e}")
+            return []
     
     async def get_all_sites(self):
         if not self.available:
@@ -419,12 +509,24 @@ class SQLiteService:
                 }
                 # Add RCA if available
                 if r[9] is not None:  # probable_cause
-                    check_data["rca"] = {
+                    rca_data = {
                         "probable_cause": r[9],
                         "confidence": r[10] or 0,
                         "repair_action": r[11] or "",
-                        "category": "Unknown"  # Category not persisted, comes from Gemma in WebSocket
+                        "category": "Unknown"
                     }
+                    
+                    # Fetch structured repair steps if available
+                    cursor2 = conn.cursor()
+                    cursor2.execute("SELECT repair_steps_json FROM root_causes WHERE check_id = ?", (r[0],))
+                    rc_row = cursor2.fetchone()
+                    if rc_row and rc_row[0]:
+                        try:
+                            rca_data["repair_steps"] = json.loads(rc_row[0])
+                        except:
+                            rca_data["repair_steps"] = None
+                    
+                    check_data["rca"] = rca_data
                 results.append(check_data)
             return results
         except Exception as e:

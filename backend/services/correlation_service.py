@@ -148,14 +148,16 @@ async def _create_incident(affected_ids: list, affected_names: list,
 async def _gemma_shared_cause(site_names: list) -> str:
     try:
         from services.ai_service import ai_service
-        prompt = f"""Multiple monitored sites degraded simultaneously within 15 minutes:
+        prompt = f"""[OBSERVABILITY ANALYST MODE]
+Multiple monitored sites have degraded simultaneously within a 15-minute window:
 Sites affected: {', '.join(site_names)}
 
-In one sentence, what is the most probable shared infrastructure cause?
-Common causes: CDN outage, DNS resolver failure, regional network congestion, shared hosting provider issue, DDoS.
-Respond with just the one-sentence cause."""
+Provide a detailed, high-confidence correlation analysis (2-3 sentences). 
+Identify the most likely shared infrastructure failure (e.g., specific CDN outage, regional DNS failure, shared hosting cluster latency). 
+Include a brief suggested verification step for an analyst.
+Respond with the analysis only, no preamble."""
         result = await ai_service._call_ollama(prompt)
-        return (result or "Shared infrastructure failure suspected").strip()[:500]
+        return (result or "Shared infrastructure failure suspected — investigate CDN, DNS, or hosting provider").strip()[:1000]
     except Exception:
         return "Shared infrastructure failure suspected — investigate CDN, DNS, or hosting provider"
 
@@ -205,10 +207,11 @@ def resolve_incident(incident_id: str, resolver_id: str) -> bool:
 
 def add_incident_note(incident_id: str, user_id: Optional[str], note: str) -> str:
     note_id = str(uuid.uuid4())
+    now = datetime.utcnow().isoformat() + 'Z'
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
-        "INSERT INTO incident_notes (id, incident_id, user_id, note) VALUES (?, ?, ?, ?)",
-        (note_id, incident_id, user_id, note),
+        "INSERT INTO incident_notes (id, incident_id, user_id, note, created_at) VALUES (?, ?, ?, ?, ?)",
+        (note_id, incident_id, user_id, note, now),
     )
     conn.commit()
     conn.close()
@@ -218,7 +221,11 @@ def add_incident_note(incident_id: str, user_id: Optional[str], note: str) -> st
 def get_incident_notes(incident_id: str) -> list[dict]:
     conn = _get_conn()
     rows = conn.execute(
-        "SELECT * FROM incident_notes WHERE incident_id = ? ORDER BY created_at ASC",
+        """SELECT n.*, u.name as user_name 
+           FROM incident_notes n 
+           LEFT JOIN users u ON n.user_id = u.id 
+           WHERE n.incident_id = ? 
+           ORDER BY n.created_at ASC""",
         (incident_id,),
     ).fetchall()
     conn.close()
