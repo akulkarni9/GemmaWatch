@@ -29,67 +29,9 @@ An intelligent, high-precision web monitoring platform powered by Ollama + Gemma
 
 ### Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            GEMMAWATCH ARCHITECTURE                          │
-└─────────────────────────────────────────────────────────────────────────────┘
+![Architecture Diagram](./architecture.png)
 
-                              ┌──────────────────────┐
-                              │   Frontend (React)   │
-                              │  http://localhost:   │
-                              │       5173           │
-                              └──────────┬───────────┘
-                                         │
-                           ┌─────────────┼─────────────┐
-                           │             │             │
-                    HTTP/REST   WebSocket (Live)      Static Files
-                       │             │            (screenshots, assets)
-                       ▼             ▼                    │
-                ┌──────────────────────────────┐          │
-                │                              │          │
-                │   FastAPI Backend Server     │◄─────────┘
-                │   http://127.0.0.1:8002      │
-                │                              │
-                │  ┌────────────────────────┐  │
-                │  │  API Endpoints:        │  │
-                │  │  - POST /monitor       │  │
-                │  │  - GET /sites          │  │
-                │  │  - GET /history        │  │
-                │  │  - WS /ws/status       │  │
-                │  └────────────────────────┘  │
-                │                              │
-                │  ┌────────────────────────┐  │
-                │  │  Core Services:        │  │
-                │  │  - Scraper (Playwright)│  │
-                │  │  - AI Service (Gemma)  │  │
-                │  │  - SQLite Service      │  │
-                │  │  - Fingerprint Service │  │
-                │  │  - Scheduler Service   │  │
-                │  │  - Anomaly Service     │  │
-                │  │  - Correlation Service │  │
-                │  │  - Alert Service       │  │
-                │  │  - Catalogue Service   │  │
-                │  │  - Chat Service        │  │
-                │  │  - Auth Service        │  │
-                │  └────────────────────────┘  │
-                └──────────────┬───────────────┘
-                               │
-                ┌──────────────┬┴───────────────┐
-                │              │                │
-                ▼              ▼                ▼
-         ┌────────────┐  ┌──────────────┐  ┌──────────────┐
-         │  SQLite DB │  │   Ollama AI  │  │  Screenshots │
-         │            │  │              │  │   Storage    │
-         │ - sites    │  │ (Gemma:      │  │  (PNG files) │
-         │ - checks   │  │  latest)     │  │              │
-         │ - RCA      │  │              │  │  /backend/   │
-         │ - metrics  │  │  http://127. │  │  screenshots/│
-         │            │  │  0.0.1:11434 │  │              │
-         └────────────┘  └──────────────┘  └──────────────┘
-         localhost:      localhost:        Local Filesystem
-         sqlite:///      11434             Path-based serving
-         gemmawatch.db
-
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           DATA FLOW SUMMARY                                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
