@@ -242,9 +242,8 @@ async def search(query_text: str, k: int = 3) -> list[dict]:
             FROM catalogue_vec v
             JOIN catalogue_vec_map m ON v.rowid = m.rowid
             JOIN primary_catalogue p ON m.catalogue_id = p.id
-            WHERE v.embedding MATCH ?
+            WHERE v.embedding MATCH ? AND v.k = ?
             ORDER BY v.distance 
-            LIMIT ?
         """
         rows = conn.execute(query, [embedding, k]).fetchall()
         
