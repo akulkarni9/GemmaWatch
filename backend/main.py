@@ -106,6 +106,7 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+fingerprint_service.set_manager(manager)
 baselines = {}
 
 

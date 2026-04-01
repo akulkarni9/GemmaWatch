@@ -10,7 +10,7 @@ const Layout: React.FC = () => {
     <div className="min-h-screen bg-premium-bg selection:bg-premium-accent/30 selection:text-premium-accent font-outfit relative overflow-hidden">
       <Navbar onChatToggle={() => setIsChatOpen(true)} />
       
-      <main className="relative z-10 pt-4">
+      <main className="relative z-10 pt-4 max-w-[1600px] mx-auto w-full">
         <Outlet />
       </main>
 

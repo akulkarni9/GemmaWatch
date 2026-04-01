@@ -160,6 +160,25 @@ const Dashboard: React.FC = () => {
               console.log('📝 Adding new result, total now:', prev.length + 1);
               return [data, ...prev];
             });
+          } else if (data.type === 'fingerprint_updated') {
+            const { fingerprint } = data;
+            console.log('🧠 AI Fingerprint Metadata Arrived!', fingerprint);
+            
+            setResults(prev => prev.map(result => {
+              if (!result.fingerprints) return result;
+              
+              const hasFingerprint = result.fingerprints.some(fp => fp.id === fingerprint.id);
+              if (!hasFingerprint) return result;
+              
+              return {
+                ...result,
+                fingerprints: result.fingerprints.map(fp => 
+                  fp.id === fingerprint.id 
+                    ? { ...fp, title: fingerprint.title, description: fingerprint.description }
+                    : fp
+                )
+              };
+            }));
           }
         } catch (e) {
           console.error('WS parse error:', e);
@@ -604,7 +623,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {results.length === 0 && (
+          {!selectedSiteId && (
             <div className="bg-white/5 backdrop-blur-md rounded-2xl p-12 border border-white/10 text-center">
               {historyLoading ? (
                 <>

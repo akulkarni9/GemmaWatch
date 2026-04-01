@@ -7,8 +7,12 @@ class FingerprintService:
     def __init__(self, db_service, ai_service):
         self.db = db_service
         self.ai = ai_service
+        self.manager = None
         # Cache for known fingerprint titles to avoid redundant AI calls in a single run
         self._title_cache = {}
+
+    def set_manager(self, manager):
+        self.manager = manager
 
     def normalize_console_error(self, log: Dict[str, Any]) -> str:
         """
@@ -124,6 +128,18 @@ class FingerprintService:
                 )
                 self._title_cache[fid] = metadata.get("title")
                 print(f"DEBUG: Successfully generated AI metadata for fingerprint {fid}")
+                
+                # Broadcast the update to anyone listening (e.g., ErrorFingerprintPanel)
+                if self.manager:
+                    await self.manager.broadcast({
+                        "type": "fingerprint_updated",
+                        "fingerprint": {
+                            "id": fid,
+                            "title": metadata.get("title"),
+                            "description": metadata.get("description"),
+                            # Let the frontend overlay these new values on its existing object
+                        }
+                    })
             else:
                 print(f"DEBUG: AI Fingerprint generation returned no result for {fid}")
         except Exception as e:

@@ -61,8 +61,11 @@ const SiteDetails: React.FC<SiteDetailsProps> = ({
             </>
           ) : (
             <>
-              <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Select a site to view detailed results</p>
+              <Zap className="w-12 h-12 mx-auto mb-4 opacity-50 text-indigo-400" />
+              <h4 className="font-bold text-white mb-2">No results yet</h4>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                First check is running or no data available. Check the Live Activity panel for real-time analysis updates.
+              </p>
             </>
           )}
         </div>
