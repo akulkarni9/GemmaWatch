@@ -135,11 +135,17 @@ Open **4 separate terminals** and run these commands in order:
 ollama serve
 ```
 
-**Terminal 2 - Backend:**
+**Terminal 2 - Main Backend Gateway:**
 ```bash
 cd backend
 pip install -r requirements.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
+```
+
+**Terminal 3 - Chat Intelligence Engine:**
+```bash
+cd backend
+python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003 --reload
 ```
 
 **Terminal 3 - Frontend:**

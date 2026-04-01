@@ -8,8 +8,8 @@ Complete guide for developing, debugging, and extending the GemmaWatch High-Prec
 # Terminal 1: Ollama
 ollama serve
 
-# Terminal 2: Backend (Ensure sqlite-vec is installed)
-cd backend && source venv/bin/activate && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
+# Terminal 2: Backend Gateways (Ensure sqlite-vec is installed)
+cd backend && source venv/bin/activate && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload & python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003 --reload
 
 # Terminal 3: Frontend
 cd frontend && npm run dev
@@ -195,8 +195,8 @@ Frontend uses Vite, default config loads from `.env*` files:
 # Terminal 1
 ollama serve
 
-# Terminal 2
-cd backend && source venv/bin/activate && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
+# Terminal 2 (Backend Gateways)
+cd backend && source venv/bin/activate && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload & python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003 --reload
 
 # Terminal 3
 cd frontend && npm run dev
