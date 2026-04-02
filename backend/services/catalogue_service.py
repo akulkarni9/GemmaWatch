@@ -7,7 +7,7 @@ Pipeline:
   3. HITL: approve/reject/edit → primary_catalogue + catalogue_vec
   4. search(query_text, k) → KNN results for RAG context
 
-sqlite-vec virtual table: catalogue_vec (rowid = primary_catalogue.id, embedding int8[768])
+sqlite-vec virtual table: catalogue_vec (rowid = primary_catalogue.id, embedding float32[768])
 """
 import sqlite3
 import uuid
@@ -33,7 +33,18 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def _ensure_vec_table(conn: sqlite3.Connection):
-    """Create the sqlite-vec virtual table and its UUID mapping table if they don't exist."""
+    """Create the sqlite-vec virtual table and its UUID mapping table if they don't exist.
+       Includes a self-repair block to fix int8 vs float32 type mismatches.
+    """
+    # ── Check for schema mismatch (Repair block) ───────────────────────────
+    cursor = conn.cursor()
+    cursor.execute("SELECT sql FROM sqlite_master WHERE name='catalogue_vec';")
+    row = cursor.fetchone()
+    if row and "int8" in row[0]:
+        print("INFO: Found legacy int8 vector table. Dropping to recreate with float32...")
+        conn.execute("DROP TABLE catalogue_vec;")
+        conn.commit()
+
     conn.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS catalogue_vec
         USING vec0(embedding float32[768])

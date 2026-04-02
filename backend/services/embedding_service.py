@@ -1,6 +1,6 @@
 """
 Embedding service: wraps Ollama's nomic-embed-text model.
-Returns int8-quantized bytes for storage in sqlite-vec.
+Returns float32 bytes for storage in sqlite-vec.
 Uses a small LRU cache to avoid re-embedding identical texts.
 """
 import os
