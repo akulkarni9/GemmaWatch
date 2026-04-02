@@ -363,7 +363,7 @@
 
 ### Configurable via .env 
 - `OLLAMA_URL` - Default: `http://127.0.0.1:11434/api/generate`
-- `MODEL_NAME` - Default: `gemma:latest`
+- `MODEL_NAME` - Default: `gemma3:12b`
 
 ### System Configuration 
 - **Check Type Selection** - HTTP/API/DNS/TCP per site

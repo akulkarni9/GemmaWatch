@@ -123,7 +123,7 @@ An intelligent, high-precision web monitoring platform powered by Ollama + Gemma
 ### Prerequisites
 - Python 3.9+
 - Node.js 16+ & npm
-- Ollama (with `gemma:latest` model)
+- Ollama (with `gemma3:12b` model)
 - Git
 
 ### Quick Start (All in One)
@@ -148,16 +148,16 @@ cd backend
 python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003 --reload
 ```
 
-**Terminal 3 - Frontend:**
+**Terminal 4 - Frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-**Terminal 4 - Verification:**
+**Terminal 5 - Verification:**
 ```bash
-# After all 3 are running, verify health
+# After backend services are running, verify health
 curl http://localhost:8002/health
 ```
 
@@ -186,8 +186,8 @@ Download from [ollama.ai](https://ollama.ai) and follow installation instruction
 
 #### Pull Gemma Model (One-time)
 ```bash
-# In a new terminal, pull gemma:latest
-ollama pull gemma:latest
+# In a new terminal, pull gemma3:12b
+ollama pull gemma3:12b
 
 # Verify it's available
 ollama list
@@ -196,7 +196,7 @@ ollama list
 Expected output:
 ```
 NAME           ID              SIZE    MODIFIED
-gemma:latest   2b3a3c6b8e9a    5.2GB   2 hours ago
+gemma3:12b   2b3a3c6b8e9a    5.2GB   2 hours ago
 ```
 
 ---
@@ -254,7 +254,9 @@ pip list | grep websockets
 # You should see these packages listed
 ```
 
-#### 2E. Start the Backend Server
+#### 2E. Start the Backend Services (Requires 2 terminal panels)
+
+**Terminal A: Main Gateway**
 ```bash
 # Make sure you're in backend/ directory AND venv is activated
 python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
@@ -262,7 +264,17 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
 # Expected output:
 # INFO:     Uvicorn running on http://127.0.0.1:8002
 # INFO:     Application startup complete
-# Press CTRL+C to quit
+```
+
+**Terminal B: Chat Intelligence Engine**
+```bash
+# In a new terminal, activate venv and start the chat engine:
+source venv/bin/activate  # macOS/Linux
+python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003 --reload
+
+# Expected output:
+# INFO:     Uvicorn running on http://127.0.0.1:8003
+# Press CTRL+C to quit either server
 ```
 
 #### 2F. Verify Backend in Another Terminal
@@ -380,11 +392,15 @@ Once all services are running and verified:
 ```bash
 cd backend
 
-# Start with auto-reload (development)
+# Start Main Gateway (Terminal 1)
 python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload
+
+# Start Chat Intelligence Engine (Terminal 2)
+python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003 --reload
 
 # Start without reload (production-like)
 python -m uvicorn main:app --host 127.0.0.1 --port 8002
+python -m uvicorn chat_main:app --host 127.0.0.1 --port 8003
 
 # Check Python version
 python --version
@@ -419,13 +435,13 @@ npx tsc --noEmit
 ollama serve
 
 # Pull/download a model
-ollama pull gemma:latest
+ollama pull gemma3:12b
 
 # List available models
 ollama list
 
 # Test Gemma is working
-curl http://localhost:11434/api/generate -d '{"model":"gemma:latest","prompt":"hello","stream":false}'
+curl http://localhost:11434/api/generate -d '{"model":"gemma3:12b","prompt":"hello","stream":false}'
 ```
 
 ---
@@ -436,6 +452,7 @@ curl http://localhost:11434/api/generate -d '{"model":"gemma:latest","prompt":"h
 |---------|-----|---------|
 | Ollama | http://localhost:11434 | LLM inference engine |
 | Backend API | http://localhost:8002 | FastAPI server + WebSocket |
+| Chat Engine | http://localhost:8003 | AI logic & SQLite-vec integration |
 | Frontend | http://localhost:5173 | React dashboard |
 | Database | `./backend/gemmawatch.db` | SQLite file (created automatically) |
 
@@ -641,7 +658,7 @@ In Railway dashboard → Project → Variables:
 
 ```
 OLLAMA_URL=http://localhost:11434
-MODEL_NAME=gemma:latest
+MODEL_NAME=gemma3:12b
 DEBUG=false
 LOG_LEVEL=info
 ```

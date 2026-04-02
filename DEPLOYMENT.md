@@ -26,7 +26,7 @@ In the Railway dashboard → Project → Variables, configure the following:
 ```env
 # AI & Database
 OLLAMA_URL=https://your-hosted-ollama-api  # Or local tunnel
-MODEL_NAME=gemma:latest
+MODEL_NAME=gemma3:12b
 EMBED_MODEL=nomic-embed-text
 
 # Authentication (Mandatory for Production)
@@ -110,7 +110,7 @@ In Railway dashboard → Project → Variables:
 
 ```
 OLLAMA_URL=http://localhost:11434
-MODEL_NAME=gemma:latest
+MODEL_NAME=gemma3:12b
 DEBUG=false
 LOG_LEVEL=info
 ```
@@ -135,22 +135,28 @@ Railway builds Docker image and deploys:
 Application running on http://0.0.0.0:PORT
 ```
 
-### Step 5: Get the Backend URL
+### Step 5: Get the Backend URLs
 In Railway dashboard:
 1. Click "Deployments"
 2. Find "Production" deployment
 3. Copy the public URL (looks like: `https://gemmawatch-backend.railway.app`)
 
+**⚠️ IMPORTANT FOR V2.0 (Dual-Microservice):**  
+Because the system is now split into two services (`main.py` on `8002` and `chat_main.py` on `8003`), you must deploy **two separate Railway services** (or use a Railway `railway.json` multi-process + Nginx reverse proxy Dockerfile).
+- Service 1 (Gateway): Set Start Command to `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`
+- Service 2 (Chat Engine): Set Start Command to `python -m uvicorn chat_main:app --host 0.0.0.0 --port $PORT`
+
 ### Step 6: Update Frontend Environment Variable
-Update the frontend to point to deployed backend:
+Update the frontend to point to the deployed backends:
 
 **Option A: Update in Vercel Dashboard**
 1. Go to https://vercel.com → GemmaWatch project
 2. Settings → Environment Variables
-3. Update `VITE_API_BASE`:
+3. Update `VITE_API_BASE` and add `VITE_CHAT_API_BASE`:
    ```
    VITE_API_BASE=https://gemmawatch-backend.railway.app
    VITE_WS_BASE=wss://gemmawatch-backend.railway.app
+   VITE_CHAT_API_BASE=https://gemmawatch-chat.railway.app
    ```
 4. Click "Save" (triggers redeploy)
 

@@ -21,7 +21,7 @@ See [README.md - TODO Section](README.md#-todo---future-implementation) for full
 ### Prerequisites
 - Python 3.9+
 - Node.js 16+
-- Ollama with `gemma:latest`
+- Ollama with `gemma3:12b`
 - Git
 
 ### Local Development

@@ -30,7 +30,7 @@ Create `backend/.env` with OAuth credentials:
 ```env
 # AI & Database
 OLLAMA_URL=http://localhost:11434
-MODEL_NAME=gemma:latest
+MODEL_NAME=gemma3:12b
 EMBED_MODEL=nomic-embed-text
 
 # Authentication (JWT & OAuth)
@@ -138,8 +138,7 @@ GemmaWatch/
 │   ├── services/
 │   │   ├── scraper.py       # Playwright browser automation
 │   │   ├── ai_service.py    # Gemma RCA integration
-│   │   ├── sqlite_service.py # Database persistence
-│   │   └── neo4j_service.py # Unused graph DB
+│   │   └── sqlite_service.py # Database persistence
 │   ├── screenshots/         # Generated screenshots
 │   └── tests/              # Unit tests
 │
@@ -170,7 +169,7 @@ Create `backend/.env` (copy from `.env.example`):
 
 ```env
 OLLAMA_URL=http://localhost:11434/api/generate
-MODEL_NAME=gemma:latest
+MODEL_NAME=gemma3:12b
 DEBUG=false
 LOG_LEVEL=INFO
 ```
@@ -208,6 +207,7 @@ cd frontend && npm run dev
 # Check services running
 lsof -i :11434  # Ollama
 lsof -i :8002   # Backend
+lsof -i :8003   # Chat Engine
 lsof -i :5173   # Frontend
 
 # List all running services
@@ -373,7 +373,7 @@ curl http://localhost:11434/api/tags
 
 # Test Gemma
 curl -X POST http://localhost:11434/api/generate \
-  -d '{"model":"gemma:latest","prompt":"hello","stream":false}'
+  -d '{"model":"gemma3:12b","prompt":"hello","stream":false}'
 ```
 
 ### Using Postman/Insomnia
